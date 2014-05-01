@@ -18,8 +18,7 @@ class WeakList(list):
             
     def __init__(self, l=[], **kwargs):
         _get_ref = self._get_ref
-        l = [_get_ref(x) for x in l]
-        list.__init__(self, l, **kwargs)
+        list.__init__(self, [_get_ref(x) for x in l], **kwargs)
 
     def __contains__(self, item):
         return list.__contains__(self, self._get_ref(item))
