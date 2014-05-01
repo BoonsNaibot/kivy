@@ -342,7 +342,7 @@ class Widget(WidgetBase):
         if parent:
             raise WidgetException('Cannot add %r, it already has a parent %r'
                                   % (widget, parent))
-        widget.parent = parent = self
+        widget.parent = parent = self.proxy_ref
         # child will be disabled if added to a disabled parent
         if parent.disabled:
             widget.disabled = True
