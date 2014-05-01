@@ -626,6 +626,161 @@ cdef class ListProperty(Property):
         value = ObservableList(self, obj, value)
         Property.set(self, obj, value)
 
+class WeakList(list):
+
+    def _get_value(self, x):
+        try:
+            x = x()
+        finally:
+            return x
+
+    def _get_ref(self, x):
+        try:
+            x = ref(x, self.remove)
+        finally:
+            return x
+
+    def __contains__(self, item):
+        return list.__contains__(self, self._get_ref(item))
+
+    def __getitem__(self, item):
+        return self._get_value(list.__getitem__(self, item))
+
+    def __setitem__(self, i, value):
+        return list.__setitem__(self, i, self._get_ref(value))
+
+    def __getslice__(self, i, j):
+        _get_value = self._get_value
+        return [_get_value(x) for x in list.__getslice__(self, i, j)] #slow?
+        
+    def __setslice__(self, i, j, values):
+        _get_ref = self._get_ref
+        return list.__setslice__(self, i, j, (_get_ref(x) for x in values))
+
+    def __iter__(self, *args, **kwargs):
+        for x in list.__iter__(self, *args, **kwargs):
+            yield self._get_value(x)
+
+    def __reversed__(self, *args, **kwargs):
+        for x in list.__reversed__(self, *args, **kwargs):
+            yield self._get_value(x)
+
+    def __repr__(self):
+        return "WeakList({!r})".format(list(self))
+
+    def append(self, value):
+        list.append(self, self._get_ref(value))
+        
+    def extend(self, values):
+        _get_ref = self._get_ref
+        list.extend(self, (_get_ref(x) for x in values))
+
+    def insert(self, i, value):
+        list.insert(self, i, self._get_ref(value))
+        
+    def count(self, value):
+        return list.count(self, self._get_ref(value))
+
+    def remove(self, value):
+        while list.__contains__(self, value):
+            list.remove(self, self._get_ref(value))
+
+    def index(self, value):
+        return list.index(self, self._get_ref(value))
+
+    def pop(self, i=-1):
+        return list.pop(self, i)
+
+class ObservableWeakList(WeakList):
+    # Internal class to observe changes inside a WeakList.
+    def __init__(self, *largs):
+        self.prop = largs[0]
+        self.obj = ref(largs[1])
+        super(ObservableWeakList, self).__init__(*largs[2:])
+
+    def __setitem__(self, key, value):
+        super(ObservableWeakList, self).__setitem__(key, value)
+        observable_list_dispatch(self)
+
+    def __delitem__(self, key):
+        super(ObservableWeakList, self).__delitem__(key)
+        observable_list_dispatch(self)
+
+    def __setslice__(self, *largs):
+        super(ObservableWeakList, self).__setslice__(*largs)
+        observable_list_dispatch(self)
+
+    def __delslice__(self, *largs):
+        super(ObservableWeakList, self).__delslice__(*largs)
+        observable_list_dispatch(self)
+
+    def __iadd__(self, *largs):
+        super(ObservableWeakList, self).__iadd__(*largs)
+        observable_list_dispatch(self)
+
+    def __imul__(self, *largs):
+        super(ObservableWeakList, self).__imul__(*largs)
+        observable_list_dispatch(self)
+
+    def append(self, *largs):
+        super(ObservableWeakList, self).append(*largs)
+        observable_list_dispatch(self)
+
+    def remove(self, *largs):
+        super(ObservableWeakList, self).remove(*largs)
+        observable_list_dispatch(self)
+
+    def insert(self, *largs):
+        super(ObservableWeakList, self).insert(*largs)
+        observable_list_dispatch(self)
+
+    def pop(self, *largs):
+        cdef object result = super(ObservableWeakList, self).pop(*largs)
+        observable_list_dispatch(self)
+        return result
+
+    def extend(self, *largs):
+        super(ObservableWeakList, self).extend(*largs)
+        observable_list_dispatch(self)
+
+    def sort(self, *largs):
+        super(ObservableWeakList, self).sort(*largs)
+        observable_list_dispatch(self)
+
+    def reverse(self, *largs):
+        super(ObservableWeakList, self).reverse(*largs)
+        observable_list_dispatch(self)
+
+
+cdef class WeakListProperty(Property):
+    '''Property that represents a list.
+
+    :Parameters:
+        `default`: list, defaults to WeakList([])?
+            Specifies the default value of the property.
+    '''
+
+    def __init__(self, defaultvalue=None, **kw):
+        defaultvalue = defaultvalue or WeakList([])
+        super(WeakListProperty, self).__init__(defaultvalue, **kw)
+
+    cpdef link(self, EventDispatcher obj, str name):
+        Property.link(self, obj, name)
+        cdef PropertyStorage ps = obj.__storage[self._name]
+        ps.value = ObservableWeakList(self, obj, ps.value)
+
+    cdef check(self, EventDispatcher obj, value):
+        if Property.check(self, obj, value):
+            return True
+        if type(value) is not ObservableWeakList:
+            raise ValueError('%s.%s accept only ObservableWeakList' % (
+                obj.__class__.__name__,
+                self.name))
+
+    cpdef set(self, EventDispatcher obj, value):
+        value = ObservableWeakList(self, obj, value)
+        Property.set(self, obj, value)
+
 cdef inline void observable_dict_dispatch(object self):
     cdef Property prop = self.prop
     prop.dispatch(self.obj)
