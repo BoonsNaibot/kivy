@@ -15,6 +15,11 @@ class WeakList(list):
             x = ref(x, self.remove)
         finally:
             return x
+            
+    def __init__(self, l=[], **kwargs):
+        _get_ref = self._get_ref
+        l = [_get_ref(x) for x in l]
+        list.__init__(self, l, **kwargs)
 
     def __contains__(self, item):
         return list.__contains__(self, self._get_ref(item))
