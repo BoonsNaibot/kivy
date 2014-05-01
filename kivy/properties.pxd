@@ -83,3 +83,6 @@ cdef class VariableListProperty(Property):
     cdef _convert_numeric(self, EventDispatcher obj, x)
     cdef float parse_str(self, EventDispatcher obj, value)
     cdef float parse_list(self, EventDispatcher obj, value, str ext)
+
+cdef class WeakListProperty(Property):
+    pass
