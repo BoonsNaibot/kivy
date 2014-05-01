@@ -18,7 +18,7 @@ class WeakList(list):
             
     def __init__(self, l=[], **kwargs):
         _get_ref = self._get_ref
-        list.__init__(self, [_get_ref(x) for x in l], **kwargs)
+        list.__init__(self, (_get_ref(x) for x in l), **kwargs)
 
     def __contains__(self, item):
         return list.__contains__(self, self._get_ref(item))
@@ -51,22 +51,22 @@ class WeakList(list):
     def append(self, value):
         list.append(self, self._get_ref(value))
         
+    def count(self, value):
+        return list.count(self, self._get_ref(value))
+        
     def extend(self, values):
         _get_ref = self._get_ref
         list.extend(self, (_get_ref(x) for x in values))
 
+    def index(self, value):
+        return list.index(self, self._get_ref(value))
+
     def insert(self, i, value):
         list.insert(self, i, self._get_ref(value))
-        
-    def count(self, value):
-        return list.count(self, self._get_ref(value))
+
+    def pop(self, i=-1):
+        return list.pop(self, i)
 
     def remove(self, value):
         while list.__contains__(self, value):
             list.remove(self, self._get_ref(value))
-
-    def index(self, value):
-        return list.index(self, self._get_ref(value))
-
-    def pop(self, i=-1):
-        return list.pop(self, i)
