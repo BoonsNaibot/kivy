@@ -5,10 +5,9 @@ from weakref import ref
 class WeakList(list):
 
     def _get_value(self, x):
-        try:
+        if isinstance(x, ref):
             x = x()
-        finally:
-            return x
+        return x
 
     def _get_ref(self, x):
         try:
