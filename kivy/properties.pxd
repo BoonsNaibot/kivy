@@ -1,8 +1,9 @@
 from kivy._event cimport EventDispatcher
+from kivy.weakreflist import WeakList
 
 cdef class PropertyStorage:
     cdef object value
-    cdef list observers
+    cdef WeakList observers
     cdef str numeric_fmt
     cdef long bnum_min
     cdef long bnum_max
