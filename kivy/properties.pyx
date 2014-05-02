@@ -298,7 +298,7 @@ cdef class Property:
 
     cdef init_storage(self, EventDispatcher obj, PropertyStorage storage):
         storage.value = self.convert(obj, self.defaultvalue)
-        storage.observers = []
+        storage.observers = WeakList()
 
     cpdef link(self, EventDispatcher obj, str name):
         '''Link the instance with its real name.
