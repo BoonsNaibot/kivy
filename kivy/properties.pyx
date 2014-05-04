@@ -191,7 +191,6 @@ __all__ = ('Property',
 include "graphics/config.pxi"
 
 from weakref import ref
-from weakreflist import WeakList
 from kivy.compat import string_types
 
 cdef float g_dpi = -1
