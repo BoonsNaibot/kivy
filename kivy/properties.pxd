@@ -1,5 +1,5 @@
 from kivy._event cimport EventDispatcher
-from kivy.weakreflist import WeakList
+from kivy.weakreflist cimport WeakList
 
 cdef class PropertyStorage:
     cdef object value
