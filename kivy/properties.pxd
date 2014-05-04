@@ -3,7 +3,7 @@ from kivy.weakreflist cimport WeakList
 
 cdef class PropertyStorage:
     cdef object value
-    cdef WeakList observers
+    cdef list observers
     cdef str numeric_fmt
     cdef long bnum_min
     cdef long bnum_max
