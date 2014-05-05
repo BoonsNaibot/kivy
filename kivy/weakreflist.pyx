@@ -9,7 +9,8 @@ cdef inline object _get_ref(object x, object self):
 
 cdef class WeakList(list):
 
-    def __init__(self, items=[]):
+    def __init__(self, items=None):
+        items = items or []
         super(WeakList, self).__init__((_get_ref(x, self) for x in items))
 
     def __contains__(self, item):
