@@ -803,7 +803,7 @@ class ScreenManager(FloatLayout):
         if screen.manager:
             raise ScreenManagerException(
                 'Screen already managed by another ScreenManager.')
-        screen.manager = self
+        screen.manager = self.proxy_ref
         screen.bind(name=self._screen_name_changed)
         self.screens.append(screen)
         if self.current is None:
