@@ -57,6 +57,9 @@ cdef class WeakList(list):
 
     def insert(self, i, item):
         super(WeakList, self).insert(i, _get_ref(item, self))
+        
+    def pop(self, i=-1):
+        return _get_object(super(WeakList, self).pop(i))
 
     def remove(self, item):
         self._remove(_get_ref(item, self))
