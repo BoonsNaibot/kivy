@@ -62,4 +62,4 @@ cdef class WeakList(list):
         return _get_object(super(WeakList, self).pop(i))
 
     def remove(self, item):
-        self._remove(_get_ref(item, self))
+        super(WeakList, self).remove(_get_ref(item, self))
