@@ -5,4 +5,4 @@ cdef extern from "Python.h":
 
 
 cdef class WeakList(list):
-    cdef _remove(object self, object item)
+    cdef _remove(self, object item)
