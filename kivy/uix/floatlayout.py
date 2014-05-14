@@ -71,13 +71,13 @@ class FloatLayout(Layout):
             size_hint=self._trigger_layout,
             size=self._trigger_layout)
 
-    def do_layout(self, *largs, **kwargs):
+    def do_layout(self, dt):
         # optimization, until the size is 1, 1, don't do layout
         if self.size == [1, 1]:
             return
         # optimize layout by preventing looking at the same attribute in a loop
-        w, h = kwargs.get('size', self.size)
-        x, y = kwargs.get('pos', self.pos)
+        w, h = self.size
+        x, y = self.pos
         for c in self.children:
             # size
             shw, shh = c.size_hint
