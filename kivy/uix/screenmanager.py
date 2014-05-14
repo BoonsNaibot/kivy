@@ -147,7 +147,7 @@ __all__ = ('Screen', 'ScreenManager', 'ScreenManagerException',
 from kivy.compat import iteritems
 from kivy.logger import Logger
 from kivy.event import EventDispatcher
-from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.stencilview import StencilLayout
 from kivy.properties import (StringProperty, ObjectProperty, AliasProperty,
                              NumericProperty, ListProperty, OptionProperty,
                              BooleanProperty)
@@ -711,7 +711,7 @@ class RiseInTransition(ShaderTransition):
     fs = StringProperty(RISEIN_TRANSITION_FS)
 
 
-class ScreenManager(FloatLayout):
+class ScreenManager(StencilLayout):
     '''Screen manager. This is the main class that will control your
     :class:`Screen` stack and memory.
 
@@ -1004,6 +1004,7 @@ class ScreenManager(FloatLayout):
 if __name__ == '__main__':
     from kivy.app import App
     from kivy.uix.button import Button
+    from kivy.uix.floatlayout import FloatLayout
     Builder.load_string('''
 <Screen>:
     canvas:
