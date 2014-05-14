@@ -28,9 +28,12 @@ provides an efficient way to clip the drawing area of children.
 __all__ = ('StencilView', )
 
 from kivy.uix.widget import Widget
-
+from kivy.uix.floatlayout import FloatLayout
 
 class StencilView(Widget):
     '''StencilView class. See module documentation for more information.
     '''
+    pass
+
+class StencilLayout(FloatLayout):
     pass
