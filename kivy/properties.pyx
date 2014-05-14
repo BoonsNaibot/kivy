@@ -634,16 +634,8 @@ class ObservableWeakList(WeakList):
         self.obj = ref(largs[1])
         super(ObservableWeakList, self).__init__(*largs[2:])
 
-    def __setitem__(self, key, value):
-        super(ObservableWeakList, self).__setitem__(key, value)
-        observable_list_dispatch(self)
-
     def __delitem__(self, key):
         super(ObservableWeakList, self).__delitem__(key)
-        observable_list_dispatch(self)
-
-    def __setslice__(self, *largs):
-        super(ObservableWeakList, self).__setslice__(*largs)
         observable_list_dispatch(self)
 
     def __delslice__(self, *largs):
@@ -658,12 +650,24 @@ class ObservableWeakList(WeakList):
         super(ObservableWeakList, self).__imul__(*largs)
         observable_list_dispatch(self)
 
+    def __setitem__(self, key, value):
+        super(ObservableWeakList, self).__setitem__(key, value)
+        observable_list_dispatch(self)
+
+    def __setslice__(self, *largs):
+        super(ObservableWeakList, self).__setslice__(*largs)
+        observable_list_dispatch(self)
+        
+    def _remove(self, *largs):
+        super(ObservableWeakList, self)._remove(*largs)
+        observable_list_dispatch(self)
+
     def append(self, *largs):
         super(ObservableWeakList, self).append(*largs)
         observable_list_dispatch(self)
 
-    def remove(self, *largs):
-        super(ObservableWeakList, self).remove(*largs)
+    def extend(self, *largs):
+        super(ObservableWeakList, self).extend(*largs)
         observable_list_dispatch(self)
 
     def insert(self, *largs):
@@ -675,16 +679,16 @@ class ObservableWeakList(WeakList):
         observable_list_dispatch(self)
         return result
 
-    def extend(self, *largs):
-        super(ObservableWeakList, self).extend(*largs)
-        observable_list_dispatch(self)
-
-    def sort(self, *largs):
-        super(ObservableWeakList, self).sort(*largs)
+    def remove(self, *largs):
+        super(ObservableWeakList, self).remove(*largs)
         observable_list_dispatch(self)
 
     def reverse(self, *largs):
         super(ObservableWeakList, self).reverse(*largs)
+        observable_list_dispatch(self)
+
+    def sort(self, *largs):
+        super(ObservableWeakList, self).sort(*largs)
         observable_list_dispatch(self)
 
 
