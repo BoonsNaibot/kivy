@@ -186,8 +186,41 @@ class RelativeLayout(FloatLayout):
         self.unbind(pos=self._trigger_layout,
                     pos_hint=self._trigger_layout)
 
-    def do_layout(self, *args):
-        super(RelativeLayout, self).do_layout(pos=(0, 0))
+    def do_layout(self, dt):
+        # optimization, until the size is 1, 1, don't do layout
+        if self.size == [1, 1]:
+            return
+        # optimize layout by preventing looking at the same attribute in a loop
+        w, h = self.size
+        x, y = 0, 0
+        for c in self.children:
+            # size
+            shw, shh = c.size_hint
+            if shw and shh:
+                c.size = w * shw, h * shh
+            elif shw:
+                c.width = w * shw
+            elif shh:
+                c.height = h * shh
+
+            # pos
+            for key, value in c.pos_hint.items():
+                if key == 'x':
+                    c.x = x + value * w
+                elif key == 'right':
+                    c.right = x + value * w
+                elif key == 'pos':
+                    c.pos = x + value[0] * w, y + value[1] * h
+                elif key == 'y':
+                    c.y = y + value * h
+                elif key == 'top':
+                    c.top = y + value * h
+                elif key == 'center':
+                    c.center = x + value[0] * w, y + value[1] * h
+                elif key == 'center_x':
+                    c.center_x = x + value * w
+                elif key == 'center_y':
+                    c.center_y = y + value * h
 
     def to_parent(self, x, y, **k):
         return (x + self.x, y + self.y)
