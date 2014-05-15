@@ -25,7 +25,7 @@ provides an efficient way to clip the drawing area of children.
             pass
 '''
 
-__all__ = ('StencilView', )
+__all__ = ('StencilView', StencilLayout)
 
 from kivy.uix.widget import Widget
 from kivy.uix.floatlayout import FloatLayout
