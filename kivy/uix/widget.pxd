@@ -37,12 +37,3 @@ cdef Widget(WidgetBase):
     cpdef tuple to_parent(self, float x, float y, bool relative=False)
     cpdef tuple to_window(self, float x, float y, bool initial=True, bool relative=False)
     cdef public Property center, center_x, center_y, children, cls, disabled, height, id, ids, opacity, parent, pos, pos_hint, right, size, size_hint, size_hint_x, size_hint_y, top, width, x, y
-
-cdef float get_right(self)
-cdef set_right(self, float value)
-cdef float get_top(self)
-cdef set_top(self, float value)
-cdef float get_center_x(self)
-cdef set_center_x(self, float value)
-cdef float get_center_y(self)
-cdef set_center_y(self, float value)
