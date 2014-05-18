@@ -10,7 +10,6 @@ cdef class Layout(Widget):
     
     def __cimport__(self, **kwargs):
         self._trigger_layout = None
-        super(Layout, self).__cimport__(**kwargs)
 
     def __init__(self, **kwargs):
         if self.__class__ == Layout:
