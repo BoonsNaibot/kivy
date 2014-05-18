@@ -14,6 +14,32 @@ cdef void _widget_destructor(int *uid, object r):
     # created in kv language.
     del _widget_destructors[uid]
     Builder.unbind_widget(uid)
+    
+cdef class BoundsGS:
+
+    cdef float get_right(self):
+        return self.x + self.width
+
+    cdef set_right(self, float *value):
+        self.x = value - self.width
+
+    cdef float get_top(self):
+        return self.y + self.height
+
+    cdef set_top(self, float *value):
+        self.y = value - self.height
+
+    cdef float get_center_x(self):
+        return self.x + self.width / 2.
+
+    cdef set_center_x(self, float *value):
+        self.x = value - self.width / 2.
+
+    cdef float get_center_y(self):
+        return self.y + self.height / 2.
+
+    cdef set_center_y(self, float *value):
+        self.y = value - self.height / 2.
 
 
 class WidgetException(Exception):
@@ -117,14 +143,14 @@ cdef class Widget(WidgetBase):
             self._canvas = _canvas
 
     property proxy_ref:
+        '''Return a proxy reference to the widget, i.e. without creating a
+        reference to the widget. See `weakref.proxy
+        <http://docs.python.org/2/library/weakref.html?highlight\
+        =proxy#weakref.proxy>`_ for more information.
+
+        .. versionadded:: 1.7.2
+        '''
         def __get__(self):
-            '''Return a proxy reference to the widget, i.e. without creating a
-            reference to the widget. See `weakref.proxy
-            <http://docs.python.org/2/library/weakref.html?highlight\
-            =proxy#weakref.proxy>`_ for more information.
-    
-            .. versionadded:: 1.7.2
-            '''
             if self._proxy_ref:
                 return self._proxy_ref
             else:
@@ -215,6 +241,7 @@ cdef class Widget(WidgetBase):
         '''
         if self.disabled and self.collide_point(*touch.pos):
             return True
+        cdef Widget *child
         for child in self.children[:]:
             if child.dispatch('on_touch_down', touch):
                 return True
@@ -228,6 +255,7 @@ cdef class Widget(WidgetBase):
         '''
         if self.disabled:
             return False
+        cdef Widget *child
         for child in self.children[:]:
             if child.dispatch('on_touch_move', touch):
                 return True
@@ -241,6 +269,7 @@ cdef class Widget(WidgetBase):
         '''
         if self.disabled:
             return False
+        cdef Widget *child
         for child in self.children[:]:
             if child.dispatch('on_touch_up', touch):
                 return True
@@ -281,8 +310,7 @@ cdef class Widget(WidgetBase):
         parent = widget.parent
         # check if widget is already a child of another widget
         if parent:
-            raise WidgetException('Cannot add %r, it already has a parent %r'
-                                  % (widget, parent))
+            raise WidgetException('Cannot add {!r}, it already has a parent {!r}'.format(widget, parent))
         widget.parent = parent = self.proxy_ref
         # child will be disabled if added to a disabled parent
         if parent.disabled:
@@ -342,7 +370,8 @@ cdef class Widget(WidgetBase):
 
         if not children:
             children = self.children
-        remove_widget = self.remove_widget
+        cdef object remove_widget = self.remove_widget
+        cdef Widget *child
         for child in children[:]:
             remove_widget(child)
 
@@ -464,57 +493,35 @@ cdef class Widget(WidgetBase):
     (:attr:`width`, :attr:`height`) properties.
     '''
 
-    cdef float get_right(self):
-        return self.x + self.width
-
-    cdef set_right(self, float value):
-        self.x = value - self.width
-
-    right = AliasProperty(get_right, set_right, bind=('x', 'width'))
+    right = AliasProperty(BoundsGS.get_right, BoundsGS.set_right, bind=('x', 'width'))
     '''Right position of the widget.
 
     :attr:`right` is an :class:`~kivy.properties.AliasProperty` of
     (:attr:`x` + :attr:`width`),
     '''
 
-    cdef float get_top(self):
-        return self.y + self.height
-
-    cdef set_top(self, float value):
-        self.y = value - self.height
-
-    top = AliasProperty(get_top, set_top, bind=('y', 'height'))
+    top = AliasProperty(BoundsGS.get_top, BoundsGS.set_top, bind=('y', 'height'))
     '''Top position of the widget.
 
     :attr:`top` is an :class:`~kivy.properties.AliasProperty` of
     (:attr:`y` + :attr:`height`),
     '''
 
-    cdef float get_center_x(self):
-        return self.x + self.width / 2.
-
-    cdef set_center_x(self, float value):
-        self.x = value - self.width / 2.
-    center_x = AliasProperty(get_center_x, set_center_x, bind=('x', 'width'))
+    center_x = AliasProperty(BoundsGS.get_center_x, BoundsGS.set_center_x, bind=('x', 'width'))
     '''X center position of the widget.
 
     :attr:`center_x` is an :class:`~kivy.properties.AliasProperty` of
     (:attr:`x` + :attr:`width` / 2.),
     '''
 
-    cdef float get_center_y(self):
-        return self.y + self.height / 2.
-
-    cdef set_center_y(self, float value):
-        self.y = value - self.height / 2.
-    center_y = AliasProperty(get_center_y, set_center_y, bind=('y', 'height'))
+    center_y = AliasProperty(BoundsGS.get_center_y, BoundsGS.set_center_y, bind=('y', 'height'))
     '''Y center position of the widget.
 
     :attr:`center_y` is an :class:`~kivy.properties.AliasProperty` of
     (:attr:`y` + :attr:`height` / 2.)
     '''
 
-    center = ReferenceListProperty(center_x, center_y)
+    center = ReferenceListProperty(BoundsGS.center_x, BoundsGS.center_y)
     '''Center position of the widget.
 
     :attr:`center` is a :class:`~kivy.properties.ReferenceListProperty` of
