@@ -31,12 +31,14 @@ cdef class FactoryBase(object):
 
     cpdef unregister(self, ...):
         cdef va_list classnames
+        cdef int i = len(self.classes)
         va_start(classnames, <void*>name)
 
-        while name:
+        while i <> 0:
             if name in self.classes:
                 self.classes.pop(name)
             name = <char*>va_arg(classnames, char_type)
+            i -= 1
         va_end(classnames)
 
     cpdef unregister_from_filename(self, char *filename):
