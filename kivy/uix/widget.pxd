@@ -8,15 +8,8 @@ cdef extern from "Python.h":
 cdef dict _widget_destructors = {}
 cdef void _widget_destroctor(int *uid, object r)
 
-cdef class WidgetMetaclass(type):
-    pass
-    
-#: Base class used for widget, that inherit from :class:`EventDispatcher`
-cdef WidgetMetaclass WidgetBase
-
-cdef Widget(WidgetBase):
+cdef Widget(EventDispatcher):
     cdef object __weakref__
-    cdef WidgetMetaClass __metaclass__
     cdef public tuple __events__
     cdef object _canvas
     cdef dict _context
