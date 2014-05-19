@@ -73,5 +73,5 @@ cdef class FactoryBase(object):
 
         return cls
 
-    cpdef get(self, *args):
+    def get(self, *args):
         return self.__getattr__(*args)
