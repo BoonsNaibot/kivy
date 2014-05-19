@@ -1,14 +1,3 @@
-cdef extern from 'stdarg.h':
-    ctypedef struct va_list:
-        pass
-    ctypedef struct fake_type:
-        pass
-    void va_start(va_list, void *arg)
-    void *va_arg(va_list, fake_type)
-    void va_end(va_list)
-    fake_type char_type 'char'
-
-
 cdef struct Machine:
     char module
     object cls
@@ -18,3 +7,8 @@ cdef struct Machine:
 
 cdef class FactoryBase(object):
     cdef dict classes
+    cdef object __getattr__(self, char *name)
+    cpdef bint is_template(self, char *classname)
+    cpdef unregister_from_filename(self, char *filename)
+    cpdef register(self, char *classname, object cls, char *module, bint is_template, object baseclasses, char *filename)
+
