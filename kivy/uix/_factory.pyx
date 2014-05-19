@@ -59,14 +59,14 @@ cdef class FactoryBase(object):
                 if not hasattr(module, name):
                     raise FactoryException(
                         'No class named <%s> in module <%s>' % (
-                            name, item['module']))
+                            name, item.module))
                 cls = item.cls = getattr(module, name)
 
             elif item.baseclasses:
                 rootwidgets = []
-                for basecls in item['baseclasses'].split('+'):
+                for basecls in item.baseclasses.split('+'):
                     rootwidgets.append(Factory.get(basecls))
-                cls = item['cls'] = type(name, tuple(rootwidgets), {})
+                cls = item.cls = type(name, tuple(rootwidgets), {})
 
             else:
                 raise FactoryException('No information to create the class')
