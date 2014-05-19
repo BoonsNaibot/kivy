@@ -48,21 +48,6 @@ class WidgetException(Exception):
     pass
 
 
-cdef class WidgetMetaclass(type):
-    '''Metaclass to auto register new widget into
-    :class:`~kivy.factory.Factory`
-
-    .. warning::
-        This metaclass is used for Widget. Don't use it directly !
-    '''
-    def __init__(mcs, name, bases, attrs):
-        super(WidgetMetaclass, mcs).__init__(name, bases, attrs)
-        Factory.register(name, cls=mcs)
-
-
-WidgetBase = WidgetMetaclass('WidgetBase', (EventDispatcher, ), {})
-
-
 cdef class Widget(EventDispatcher):
     '''Widget class. See module documentation for more information.
 
