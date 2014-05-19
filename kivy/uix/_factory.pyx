@@ -29,16 +29,19 @@ cdef class FactoryBase(object):
         machine.filename = filename
         self.classes[classname] = machine
 
-    cpdef unregister(self, *classnames):
-        cdef char *name
-        for classname in classnames:
-            name = classname
+    cpdef unregister(self, ...):
+        cdef va_list classnames
+        va_start(classnames, <void*>name)
+
+        while name:
             if name in self.classes:
                 self.classes.pop(name)
+            name = <char*>va_arg(classnames, char_type)
+        va_end(classnames)
 
     cpdef unregister_from_filename(self, char *filename):
         cdef char *x, *name
-        cdef list *to_remove = [x for x in self.classes if self.classes[x].filename == filename]
+        cdef list to_remove = [x for x in self.classes if self.classes[x].filename == filename]
         for name in to_remove:
             del self.classes[name]
 
