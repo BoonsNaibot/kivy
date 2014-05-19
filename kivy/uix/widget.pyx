@@ -63,7 +63,7 @@ cdef class WidgetMetaclass(type):
 WidgetBase = WidgetMetaclass('WidgetBase', (EventDispatcher, ), {})
 
 
-cdef class Widget(WidgetBase):
+cdef class Widget(EventDispatcher):
     '''Widget class. See module documentation for more information.
 
     :Events:
@@ -84,13 +84,13 @@ cdef class Widget(WidgetBase):
         callbacks to properties or events, as the Kv language.
     '''
 
-    __metaclass__ = WidgetMetaclass
     __events__ = ('on_touch_down', 'on_touch_move', 'on_touch_up')
     
     def __cinit__(self, **kwargs):
         self._canvas = None
         self._context = None
         self._proxy_ref = None
+        Factory.register('WidgetBase', cls=self)
 
     def __init__(self, **kwargs):
         # Before doing anything, ensure the windows exist.
