@@ -1,27 +1,34 @@
-from kivy.logger import Logger
-
-
 class FactoryException(Exception):
     pass
+
+cdef class Machine:
+
+    def __cinit__(self):
+        self.module = None
+        self.cls = None
+        self.is_template = None
+        self.baseclasses = None
+        self.filename = None
 
 
 cdef class FactoryBase(object):
 
-    classes = {}
+    def __cinit__(self):
+        self.classes = {}
 
-    cpdef bint is_template(self, char *classname):
+    cpdef bint is_template(self, str classname):
         if classname in self.classes:
             return self.classes[classname].is_template
         else:
             return 0
 
-    cpdef register(self, char *classname, object cls=None, char *module='', bint is_template=0, object baseclasses=None, char *filename=''):
-        if cls is None and module=='' and baseclasses is None:
-            raise ValueError('You must specify either cls= or module= or baseclasses =')
+    cpdef register(self, str classname, object cls=None, str module='', bint is_template=0, object baseclasses=None, str filename=''):
+        if cls is None and module == '' and baseclasses is None:
+            raise ValueError('You must specify either cls= or module= or baseclasses=')
         elif classname in self.classes:
             return
 
-        cdef Machine machine
+        machine = Machine()
         machine.module = module
         machine.cls = cls
         machine.is_template = is_template
@@ -34,13 +41,12 @@ cdef class FactoryBase(object):
             if classname in self.classes:
                 self.classes.pop(classname)
 
-    cpdef unregister_from_filename(self, char *filename):
-        cdef char *x, *name
-        cdef list to_remove = [x for x in self.classes if self.classes[x].filename == filename]
+    cpdef unregister_from_filename(self, str filename):
+        cpdef list to_remove = [x for x in self.classes if self.classes[x].filename == filename]
         for name in to_remove:
             del self.classes[name]
 
-    cdef object __getattr__(self, char *name):
+    def __getattr__(self, name):
         cdef dict classes = self.classes
         if name not in classes:
             if name[0] == name[0].lower():
@@ -49,7 +55,7 @@ cdef class FactoryBase(object):
                 raise AttributeError
             raise FactoryException('Unknown class <%s>' % name)
 
-        cdef Machine *item = classes[name]
+        item = classes[name]
         cls = item.cls
 
         # No class to return, import the module
@@ -57,15 +63,13 @@ cdef class FactoryBase(object):
             if item.module:
                 module = __import__(name=item.module, fromlist='.')
                 if not hasattr(module, name):
-                    raise FactoryException(
-                        'No class named <%s> in module <%s>' % (
-                            name, item.module))
+                    raise FactoryException('No class named {!s} in module {!s}'.format(name, item.module))
                 cls = item.cls = getattr(module, name)
 
             elif item.baseclasses:
                 rootwidgets = []
                 for basecls in item.baseclasses.split('+'):
-                    rootwidgets.append(Factory.get(basecls))
+                    rootwidgets.append(self.get(basecls))
                 cls = item.cls = type(name, tuple(rootwidgets), {})
 
             else:
