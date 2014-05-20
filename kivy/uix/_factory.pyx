@@ -7,6 +7,11 @@ class FactoryException(Exception):
     pass
 
 cdef class Machine:
+    cdef readonly str module
+    cdef readonly object cls
+    cdef readonly bint is_template
+    cdef readonly str baseclasses
+    cdef readonly str filename
 
     def __cinit__(self, module, cls, is_template, baseclasses, filename):
         self.module = module
