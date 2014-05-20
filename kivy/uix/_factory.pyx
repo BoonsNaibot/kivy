@@ -23,7 +23,7 @@ cdef class FactoryBase(object):
         
     cdef _create_machine(self, object cls, str module, bint is_template, str baseclasses, str filename):
         try:
-            cls = PyWeakref_NewRef(object ob, None)
+            cls = PyWeakref_NewRef(cls, None)
         finally:
             cdef object machine = Machine(module, cls, is_template, baseclasses, filename)
             return machine
