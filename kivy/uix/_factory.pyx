@@ -3,18 +3,22 @@ class FactoryException(Exception):
 
 cdef class Machine:
 
-    def __cinit__(self):
-        self.module = None
-        self.cls = None
-        self.is_template = None
-        self.baseclasses = None
-        self.filename = None
+    def __cinit__(self, module, cls, is_template, baseclasses, filename):
+        self.module = module
+        self.cls = cls
+        self.is_template = is_template
+        self.baseclasses = baseclasses
+        self.filename = filename
 
 
 cdef class FactoryBase(object):
 
     def __cinit__(self):
         self.classes = {}
+        
+    cdef _create_machine(self, object cls, str module, bint is_template, str baseclasses, str filename):
+        cdef object machine = Machine(module, cls, is_template, baseclasses, filename)
+        return machine
 
     cpdef bint is_template(self, str classname):
         if classname in self.classes:
@@ -22,19 +26,13 @@ cdef class FactoryBase(object):
         else:
             return 0
 
-    cpdef register(self, str classname, object cls=None, str module=None, bint is_template=0, object baseclasses=None, str filename=None):
+    cpdef register(self, str classname, object cls=None, str module=None, bint is_template=0, str baseclasses=None, str filename=None):
         if cls is None and module is None and baseclasses is None:
             raise ValueError('You must specify either cls= or module= or baseclasses=')
         elif classname in self.classes:
             return
 
-        machine = Machine()
-        machine.module = module
-        machine.cls = cls
-        machine.is_template = is_template
-        machine.baseclasses = baseclasses
-        machine.filename = filename
-        self.classes[classname] = machine
+        self.classes[classname] = self._create_machine(module, cls, is_template, baseclasses, filename)
 
     def unregister(self, *classnames):
         for classname in classnames:
@@ -64,13 +62,15 @@ cdef class FactoryBase(object):
                 module = __import__(name=item.module, fromlist='.')
                 if not hasattr(module, name):
                     raise FactoryException('No class named {!s} in module {!s}'.format(name, item.module))
-                cls = item.cls = getattr(module, name)
+                cls = getattr(module, name)
+                self.classes[name] = self._create_machine(item.module, cls, item.is_template, item.baseclasses, item.filename)
 
             elif item.baseclasses:
                 rootwidgets = []
                 for basecls in item.baseclasses.split('+'):
                     rootwidgets.append(self.get(basecls))
-                cls = item.cls = type(name, tuple(rootwidgets), {})
+                cls = type(name, tuple(rootwidgets), {})
+                self.classes[name] = self._create_machine(item.module, cls, item.is_template, item.baseclasses, item.filename)
 
             else:
                 raise FactoryException('No information to create the class')
