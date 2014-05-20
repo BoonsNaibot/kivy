@@ -3,13 +3,6 @@ cdef extern from "Python.h":
     object PyWeakref_GetObject(object ref)
     void Py_XINCREF(object o)
 
-cdef class Machine:
-    cdef readonly str module
-    cdef readonly object cls
-    cdef readonly bint is_template
-    cdef readonly str baseclasses
-    cdef readonly str filename
-
 cdef class FactoryBase(object):
     cdef public dict classes
     cpdef bint is_template(self, str classname)
