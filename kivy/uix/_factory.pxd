@@ -1,14 +1,13 @@
-cdef struct Machine:
-    char module
-    object cls
-    bint is_template
-    tuple baseclasses
-    char filename
+cdef class Machine:
+    cdef public str module
+    cdef public object cls
+    cdef public bint is_template
+    cdef public object baseclasses
+    cdef public str filename
 
 cdef class FactoryBase(object):
-    cdef dict classes
-    cdef object __getattr__(self, char *name)
-    cpdef bint is_template(self, char *classname)
-    cpdef unregister_from_filename(self, char *filename)
-    cpdef register(self, char *classname, object cls, char *module, bint is_template, object baseclasses, char *filename)
+    cdef public dict classes
+    cpdef bint is_template(self, str classname)
+    cpdef unregister_from_filename(self, str filename)
+    cpdef register(self, str classname, object cls=*, str module=*, bint is_template=*, object baseclasses=*, str filename=*)
 
