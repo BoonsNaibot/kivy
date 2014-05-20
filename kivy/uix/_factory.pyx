@@ -1,3 +1,8 @@
+cdef inline object _get_object(object x):
+    x = PyWeakref_GetObject(x)
+    Py_XINCREF(x)
+    return x
+
 class FactoryException(Exception):
     pass
 
@@ -17,8 +22,11 @@ cdef class FactoryBase(object):
         self.classes = {}
         
     cdef _create_machine(self, object cls, str module, bint is_template, str baseclasses, str filename):
-        cdef object machine = Machine(module, cls, is_template, baseclasses, filename)
-        return machine
+        try:
+            cls = PyWeakref_NewRef(object ob, None)
+        finally:
+            cdef object machine = Machine(module, cls, is_template, baseclasses, filename)
+            return machine
 
     cpdef bint is_template(self, str classname):
         if classname in self.classes:
@@ -54,7 +62,11 @@ cdef class FactoryBase(object):
             raise FactoryException('Unknown class {!s}'.format(name))
 
         item = classes[name]
-        cls = item.cls
+        
+        try:
+            cls = _get_object(item.cls)
+        except:
+            cls = item.cls
 
         # No class to return, import the module
         if cls is None:
