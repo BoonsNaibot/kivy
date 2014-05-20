@@ -53,7 +53,7 @@ cdef class FactoryBase(object):
                 # if trying to access attributes like checking for `bind`
                 # then raise AttributeError
                 raise AttributeError
-            raise FactoryException('Unknown class <%s>' % name)
+            raise FactoryException('Unknown class {!s}'.format(name))
 
         item = classes[name]
         cls = item.cls
