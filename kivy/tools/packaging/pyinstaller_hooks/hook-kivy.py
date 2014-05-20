@@ -16,7 +16,7 @@ from kivy.factory import Factory
 
 
 def get_modules():
-    return [x.get('module', None) for x in Factory.classes.values()]
+    return [x.module for x in Factory.classes.values()]
 
 
 datas = [
