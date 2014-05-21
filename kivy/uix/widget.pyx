@@ -8,7 +8,7 @@ from kivy.lang import Builder
 from kivy.context import get_current_context
 from functools import partial
 
-cdef void _widget_destructor(int uid, object r):
+cpdef _widget_destructor(int uid, object r):
     # internal method called when a widget is deleted from memory. the only
     # thing we remember about it is its uid. Clear all the associated callback
     # created in kv language.
@@ -17,28 +17,28 @@ cdef void _widget_destructor(int uid, object r):
     
 cdef class BoundsGS:
 
-    cdef float get_right(self):
+    cpdef float get_right(self):
         return self.x + self.width
 
-    cdef set_right(self, float *value):
+    cpdef set_right(self, float *value):
         self.x = value - self.width
 
-    cdef float get_top(self):
+    cpdef float get_top(self):
         return self.y + self.height
 
-    cdef set_top(self, float *value):
+    cpdef set_top(self, float *value):
         self.y = value - self.height
 
-    cdef float get_center_x(self):
+    cpdef float get_center_x(self):
         return self.x + self.width / 2.
 
-    cdef set_center_x(self, float *value):
+    cpdef set_center_x(self, float *value):
         self.x = value - self.width / 2.
 
-    cdef float get_center_y(self):
+    cpdef float get_center_y(self):
         return self.y + self.height / 2.
 
-    cdef set_center_y(self, float *value):
+    cpdef set_center_y(self, float *value):
         self.y = value - self.height / 2.
 
 
@@ -82,69 +82,16 @@ cdef class WidgetBase(EventDispatcher):
                 _widget_destructors[self.uid] = (f, _proxy_ref)
                 return _proxy_ref
 
-    cpdef bint __eq__(self, Widget other):
-        if not isinstance(other, Widget):
-            return False
-        return self.proxy_ref is other.proxy_ref
-
-    cpdef int __hash__(self):
-        return id(self)
-
-    cpdef bint collide_point(self, float x, float y):
-        return self.x <= x <= self.right and self.y <= y <= self.top
-
-    cpdef bool collide_widget(self, Widget wid):
-        if self.right < wid.x:
-            return False
-        if self.x > wid.right:
-            return False
-        if self.top < wid.y:
-            return False
-        if self.y > wid.top:
-            return False
-        return True
-
-    cpdef bool on_touch_down(self, object touch):
-        if self.disabled and self.collide_point(*touch.pos):
-            return True
-        cdef Widget *child
-        for child in self.children[:]:
-            if child.dispatch('on_touch_down', touch):
-                return True
-        else:
-            return False
-
-    cpdef bool on_touch_move(self, object touch):
-        if self.disabled:
-            return False
-        cdef Widget *child
-        for child in self.children[:]:
-            if child.dispatch('on_touch_move', touch):
-                return True
-        else:
-            return False
-
-    cpdef bool on_touch_up(self, object touch):
-        if self.disabled:
-            return False
-        cdef Widget *child
-        for child in self.children[:]:
-            if child.dispatch('on_touch_up', touch):
-                return True
-        else:
-            return False
-
-    cpdef add_widget(self, Widget widget, int index=0):
+    cpdef add_widget(self, object widget, int index=0):
         if not isinstance(widget, Widget):
-            raise WidgetException(
-                'add_widget() can be used only with Widget classes.')
+            raise WidgetException('add_widget() can be used only with Widget classes.')
 
         widget = widget.__self__
         if widget is self:
             raise WidgetException('You cannot add yourself in a Widget')
-        parent = widget.parent
+
         # check if widget is already a child of another widget
-        if parent:
+        if widget.parent:
             raise WidgetException('Cannot add {!r}, it already has a parent {!r}'.format(widget, parent))
         widget.parent = parent = self.proxy_ref
         # child will be disabled if added to a disabled parent
@@ -156,7 +103,7 @@ cdef class WidgetBase(EventDispatcher):
             self.canvas.add(widget.canvas)
         else:
             canvas = self.canvas
-            children = self.children
+            cdef list children = self.children
             if index >= len(children):
                 index = len(children)
                 next_index = 0
@@ -174,51 +121,98 @@ cdef class WidgetBase(EventDispatcher):
                 next_index = 1
             canvas.insert(next_index, widget.canvas)
 
-    cpdef remove_widget(self, Widget widget):
-        if widget not in self.children:
-            return
-        self.children.remove(widget)
-        self.canvas.remove(widget.canvas)
-        widget.parent = None
-
-    cpdef clear_widgets(self, object children=None):
-
+    cpdef clear_widgets(self, list children=None):
         if not children:
             children = self.children
-        cdef object remove_widget = self.remove_widget
-        cdef Widget *child
+        remove_widget = self.remove_widget
         for child in children[:]:
             remove_widget(child)
 
-    cpdef object get_root_window(self):
-        if self.parent:
-            return self.parent.get_root_window()
+    cpdef bint collide_point(self, float x, float y):
+        return self.x <= x <= self.right and self.y <= y <= self.top
+
+    cpdef bint collide_widget(self, object wid):
+        if self.right < wid.x:
+            return False
+        if self.x > wid.right:
+            return False
+        if self.top < wid.y:
+            return False
+        if self.y > wid.top:
+            return False
+        return True
 
     cpdef object get_parent_window(self):
         if self.parent:
             return self.parent.get_parent_window()
 
-    cpdef tuple to_local(self, float x, float y, bool relative=False):
+    cpdef object get_root_window(self):
+        if self.parent:
+            return self.parent.get_root_window()
+
+    cpdef bint on_touch_down(self, object touch):
+        if self.disabled and self.collide_point(*touch.pos):
+            return True
+        for child in self.children[:]:
+            if child.dispatch('on_touch_down', touch):
+                return True
+        else:
+            return False
+
+    cpdef bint on_touch_move(self, object touch):
+        if self.disabled:
+            return False
+        for child in self.children[:]:
+            if child.dispatch('on_touch_move', touch):
+                return True
+        else:
+            return False
+
+    cpdef bint on_touch_up(self, object touch):
+        if self.disabled:
+            return False
+        for child in self.children[:]:
+            if child.dispatch('on_touch_up', touch):
+                return True
+        else:
+            return False
+
+    cpdef remove_widget(self, object widget):
+        if widget in self.children:
+            self.children.remove(widget)
+            self.canvas.remove(widget.canvas)
+            widget.parent = None
+
+    cpdef tuple to_local(self, float x, float y, bint relative=False):
         if relative:
             return (x - self.x, y - self.y)
         return (x, y)
 
-    cpdef tuple to_widget(self, float x, float y, bool relative=False):
-        if self.parent:
-            x, y = self.parent.to_widget(x, y)
-        return self.to_local(x, y, relative=relative)
-
-    cpdef tuple to_parent(self, float x, float y, bool relative=False):
+    cpdef tuple to_parent(self, float x, float y, bint relative=False):
         if relative:
             return (x + self.x, y + self.y)
         return (x, y)
 
-    cpdef tuple to_window(self, float x, float y, bool initial=True, bool relative=False):
+    cpdef tuple to_widget(self, float x, float y, bint relative=False):
+        if self.parent:
+            cdef float x, y = self.parent.to_widget(x, y)
+        return self.to_local(x, y, relative=relative)
+
+    cpdef tuple to_window(self, float x, float y, bint initial=True, bint relative=False):
         if not initial:
-            x, y = self.to_parent(x, y, relative=relative)
+            cdef float x, y = self.to_parent(x, y, relative=relative)
         if self.parent:
             return self.parent.to_window(x, y, initial=False, relative=relative)
         return (x, y)
+
+    def __hash__(self):
+        return id(self)
+
+    def __richcmp__(self, object other, int i):
+        if i == 2:
+            if not isinstance(other, Widget):
+                return False
+            return self.proxy_ref is other.proxy_ref
 
     def on_disabled(self, instance, value):
         for child in self.children:
@@ -271,8 +265,6 @@ cdef class Widget(WidgetBase):
 
         # Apply all the styles
         if '__no_builder' not in kwargs:
-            #current_root = Builder.idmap.get('root')
-            #Builder.idmap['root'] = self
             Builder.apply(self)
 
         # Bind all the events
