@@ -20,25 +20,25 @@ cdef class BoundsGS:
     cpdef float get_right(self):
         return self.x + self.width
 
-    cpdef set_right(self, float *value):
+    cpdef set_right(self, float value):
         self.x = value - self.width
 
     cpdef float get_top(self):
         return self.y + self.height
 
-    cpdef set_top(self, float *value):
+    cpdef set_top(self, float value):
         self.y = value - self.height
 
     cpdef float get_center_x(self):
         return self.x + self.width / 2.
 
-    cpdef set_center_x(self, float *value):
+    cpdef set_center_x(self, float value):
         self.x = value - self.width / 2.
 
     cpdef float get_center_y(self):
         return self.y + self.height / 2.
 
-    cpdef set_center_y(self, float *value):
+    cpdef set_center_y(self, float value):
         self.y = value - self.height / 2.
 
 
