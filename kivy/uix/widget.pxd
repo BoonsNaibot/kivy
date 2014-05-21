@@ -13,21 +13,19 @@ cdef class WidgetBase(EventDispatcher):
     cdef object _canvas
     cdef dict _context
     cdef object _proxy_ref
-    cpdef bool __eq__(self, Widget other)
-    cpdef int __hash__(self)
-    cpdef bool collide_point(self, float x, float y)
-    cpdef bool collide_widget(self, Widget wid)
-    cpdef bool on_touch_down(self, object touch)
-    cpdef bool on_touch_move(self, object touch)
-    cpdef bool on_touch_up(self, object touch)
-    cpdef add_widget(self, Widget widget, int index=0)
-    cpdef remove_widget(self, Widget widget)
-    cpdef object get_root_window(self)
+    cpdef add_widget(self, object widget, int index=*)
     cpdef object get_parent_window(self)
-    cpdef tuple to_local(self, float x, float y, bool relative=False)
-    cpdef tuple to_widget(self, float x, float y, bool relative=False)
-    cpdef tuple to_parent(self, float x, float y, bool relative=False)
-    cpdef tuple to_window(self, float x, float y, bool initial=True, bool relative=False)
+    cpdef object get_root_window(self)
+    cpdef bint collide_point(self, float x, float y)
+    cpdef bint collide_widget(self, object wid)
+    cpdef bint on_touch_down(self, object touch)
+    cpdef bint on_touch_move(self, object touch)
+    cpdef bint on_touch_up(self, object touch)
+    cpdef remove_widget(self, object widget)
+    cpdef tuple to_local(self, float x, float y, bint relative=*)
+    cpdef tuple to_parent(self, float x, float y, bint relative=*)
+    cpdef tuple to_widget(self, float x, float y, bint relative=*)
+    cpdef tuple to_window(self, float x, float y, bint initial=*, bint relative=*)
     cdef public Property center, center_x, center_y, children, cls, disabled, height, id, ids, opacity, parent, pos, pos_hint, right, size, size_hint, size_hint_x, size_hint_y, top, width, x, y
 
 cdef class Widget(WidgetBase):
