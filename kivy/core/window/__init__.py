@@ -479,7 +479,7 @@ class WindowBase(EventDispatcher):
         self.create_window()
 
         # attach modules + listener event
-        EventLoop.set_window(self)
+        EventLoop.window(self)
         Modules.register_window(self)
         EventLoop.add_event_listener(self)
 
