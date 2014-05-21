@@ -9,17 +9,17 @@ cdef inline object _get_ref(object x, object self):
 
 cdef class WeakList(list):
 
-    def __init__(self, items=None):
+    def __init__(self, list items=None):
         items = items or []
         super(WeakList, self).__init__((_get_ref(x, self) for x in items))
 
-    def __contains__(self, item):
+    def __contains__(self, object item):
         return super(WeakList, self).__contains__(_get_ref(item, self))
 
-    def __getitem__(self, item):
+    def __getitem__(self, object item):
         return _get_object(super(WeakList, self).__getitem__(item))
 
-    def __getslice__(self, i, j):
+    def __getslice__(self, int i, int j):
         return [_get_object(x) for x in super(WeakList, self).__getslice__(i, j)] #slow?
 
     def __iter__(self):
@@ -33,33 +33,33 @@ cdef class WeakList(list):
         for x in super(WeakList, self).__reversed__(*args, **kwargs):
             yield _get_object(x)
 
-    def __setitem__(self, i, item):
+    def __setitem__(self, int i, object item):
         super(WeakList, self).__setitem__(i, _get_ref(item, self))
 
-    def __setslice__(self, i, j, items):
+    def __setslice__(self, int i, int j, object items):
         super(WeakList, self).__setslice__(i, j, (_get_ref(x, self) for x in items))
 
     cpdef _remove(self, object item):
         while super(WeakList, self).__contains__(item):
             super(WeakList, self).remove(item)
 
-    def append(self, item):
+    def append(self, object item):
         super(WeakList, self).append(_get_ref(item, self))
 
-    def count(self, item):
+    def count(self, object item):
         return super(WeakList, self).count(_get_ref(item, self))
 
-    def extend(self, items):
+    def extend(self, object items):
         super(WeakList, self).extend((_get_ref(x, self) for x in items))
 
-    def index(self, item):
+    def index(self, object item):
         return super(WeakList, self).index(_get_ref(item, self))
 
-    def insert(self, i, item):
+    def insert(self, int i, object item):
         super(WeakList, self).insert(i, _get_ref(item, self))
         
-    def pop(self, i=-1):
+    def pop(self, int i=-1):
         return _get_object(super(WeakList, self).pop(i))
 
-    def remove(self, item):
+    def remove(self, object item):
         super(WeakList, self).remove(_get_ref(item, self))
