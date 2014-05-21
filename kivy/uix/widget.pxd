@@ -6,9 +6,8 @@ cdef extern from "Python.h":
     
 # references to all the destructors widgets (partial method with widget uid as key.)
 cdef dict _widget_destructors = {}
-cdef void _widget_destroctor(int *uid, object r)
 
-cdef Widget(EventDispatcher):
+cdef class WidgetBase(EventDispatcher):
     cdef object __weakref__
     cdef public tuple __events__
     cdef object _canvas
@@ -30,3 +29,6 @@ cdef Widget(EventDispatcher):
     cpdef tuple to_parent(self, float x, float y, bool relative=False)
     cpdef tuple to_window(self, float x, float y, bool initial=True, bool relative=False)
     cdef public Property center, center_x, center_y, children, cls, disabled, height, id, ids, opacity, parent, pos, pos_hint, right, size, size_hint, size_hint_x, size_hint_y, top, width, x, y
+
+cdef class Widget(WidgetBase):
+    pass
