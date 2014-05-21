@@ -1,17 +1,3 @@
-# pylint: disable=W0611
-'''
-Kivy Base
-=========
-
-This module contains core Kivy functionality and is not intended for end users.
-Feel free to look though it, but calling any of these methods directly may well
-result in unpredicatable behavior.
-
-Event loop management
----------------------
-
-'''
-
 __all__ = (
     'EventLoop',
     'EventLoopBase',
@@ -34,7 +20,7 @@ from kivy.context import register_context
 EventLoop = None
 
 
-class ExceptionHandler(object):
+cdef class ExceptionHandler(object):
     '''Base handler that catches exceptions in :func:`runTouchApp`.
     You can subclass and extend it as follows::
 
@@ -51,39 +37,40 @@ class ExceptionHandler(object):
     def __init__(self):
         pass
 
-    def handle_exception(self, exception):
+    cpdef handle_exception(self, object exception):
         '''Handle one exception, defaults to returning
         ExceptionManager.STOP.
         '''
         return ExceptionManager.RAISE
 
 
-class ExceptionManagerBase:
+cdef class ExceptionManagerBase:
     '''ExceptionManager manages exceptions handlers.'''
 
-    RAISE = 0
-    PASS = 1
+    cdef bint RAISE = 0
+    cdef bint PASS = 1
 
-    def __init__(self):
+    def __cinit__(self):
         self.handlers = []
-        self.policy = ExceptionManagerBase.RAISE
+        self.policy = self.RAISE
 
-    def add_handler(self, cls):
+    cpdef add_handler(self, object cls):
         '''Add a new exception handler to the stack.'''
         if not cls in self.handlers:
             self.handlers.append(cls)
 
-    def remove_handler(self, cls):
+    cpdef remove_handler(self, object cls):
         '''Remove a exception handler from the stack.'''
         if cls in self.handlers:
             self.handlers.remove(cls)
 
-    def handle_exception(self, inst):
+    cpdef handle_exception(self, object inst):
         '''Called when an exception occured in the runTouchApp() main loop.'''
-        ret = self.policy
+        cdef bint r
+        cdef bint ret = self.policy
         for handler in self.handlers:
             r = handler.handle_exception(inst)
-            if r == ExceptionManagerBase.PASS:
+            if r == self.PASS:
                 ret = r
         return ret
 
@@ -91,30 +78,35 @@ class ExceptionManagerBase:
 ExceptionManager = register_context('ExceptionManager', ExceptionManagerBase)
 
 
-class EventLoopBase(EventDispatcher):
+cdef class EventLoopBase(EventDispatcher):
     '''Main event loop. This loop handles the updating of input and
     dispatching events.
     '''
 
     __events__ = ('on_start', 'on_pause', 'on_stop')
 
-    def __init__(self):
-        super(EventLoopBase, self).__init__()
+    def __cinit__(self):
         self.quit = False
         self.input_events = []
         self.postproc_modules = []
         self.status = 'idle'
         self.input_providers = []
         self.input_providers_autoremove = []
-        self.event_listeners = []
-        self.window = None
+        self.event_listeners = WeakList()
+        self._window = None
         self.me_list = []
 
-    @property
-    def touches(self):
-        '''Return the list of all touches currently in down or move states.
-        '''
-        return self.me_list
+    property touches:
+        def __get__(self):
+            '''Return the list of all touches currently in down or move states.
+            '''
+            return self.me_list
+            
+    property window:
+        def __get__(self):
+            return self._window
+        def __set__(self, object _window):
+            self._window = _window
 
     def ensure_window(self):
         '''Ensure that we have a window.
@@ -124,12 +116,7 @@ class EventLoopBase(EventDispatcher):
             Logger.critical('App: Unable to get a Window, abort.')
             sys.exit(1)
 
-    def set_window(self, window):
-        '''Set the window used for the event loop.
-        '''
-        self.window = window
-
-    def add_input_provider(self, provider, auto_remove=False):
+    cpdef add_input_provider(self, provider, bint auto_remove=0):
         '''Add a new input provider to listen for touch events.
         '''
         if provider not in self.input_providers:
@@ -137,25 +124,25 @@ class EventLoopBase(EventDispatcher):
             if auto_remove:
                 self.input_providers_autoremove.append(provider)
 
-    def remove_input_provider(self, provider):
+    cpdef remove_input_provider(self, provider):
         '''Remove an input provider.
         '''
         if provider in self.input_providers:
             self.input_providers.remove(provider)
 
-    def add_event_listener(self, listener):
+    cpdef add_event_listener(self, listener):
         '''Add a new event listener for getting touch events.
         '''
         if not listener in self.event_listeners:
             self.event_listeners.append(listener)
 
-    def remove_event_listener(self, listener):
+    cpdef remove_event_listener(self, listener):
         '''Remove an event listener from the list.
         '''
         if listener in self.event_listeners:
             self.event_listeners.remove(listener)
 
-    def start(self):
+    cpdef start(self):
         '''Must be called only once before run().
         This starts all configured input providers.'''
         self.status = 'started'
@@ -164,7 +151,7 @@ class EventLoopBase(EventDispatcher):
             provider.start()
         self.dispatch('on_start')
 
-    def close(self):
+    cpdef close(self):
         '''Exit from the main loop and stop all configured
         input providers.'''
         self.quit = True
@@ -202,7 +189,7 @@ class EventLoopBase(EventDispatcher):
         if mod in self.postproc_modules:
             self.postproc_modules.remove(mod)
 
-    def post_dispatch_input(self, etype, me):
+    cdef post_dispatch_input(self, str etype, object me):
         '''This function is called by dispatch_input() when we want to dispatch
         an input event. The event is dispatched to all listeners and if
         grabbed, it's dispatched to grabbed widgets.
@@ -288,7 +275,7 @@ class EventLoopBase(EventDispatcher):
             self.input_events.remove(ev)
         self.input_events.append(ev)
 
-    def dispatch_input(self):
+    cdef dispatch_input(self):
         '''Called by idle() to read events from input providers, pass events to
         postproc, and dispatch final events.
         '''
@@ -346,29 +333,29 @@ class EventLoopBase(EventDispatcher):
 
         return self.quit
 
-    def run(self):
+    cpdef run(self):
         '''Main loop'''
         while not self.quit:
             self.idle()
         self.exit()
 
-    def exit(self):
+    cpdef exit(self):
         '''Close the main loop and close the window.'''
         self.close()
         if self.window:
             self.window.close()
 
-    def on_stop(self):
+    cpdef on_stop(self):
         '''Event handler for `on_stop` events which will be fired right
         after all input providers have been stopped.'''
         pass
 
-    def on_pause(self):
+    cpdef on_pause(self):
         '''Event handler for `on_pause` which will be fired when
         the event loop is paused.'''
         pass
 
-    def on_start(self):
+    cpdef on_start(self):
         '''Event handler for `on_start` which will be fired right
         after all input providers have been started.'''
         pass
