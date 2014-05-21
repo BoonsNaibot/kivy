@@ -8,7 +8,7 @@ from kivy.lang import Builder
 from kivy.context import get_current_context
 from functools import partial
 
-cdef void _widget_destructor(int *uid, object r):
+cdef void _widget_destructor(int uid, object r):
     # internal method called when a widget is deleted from memory. the only
     # thing we remember about it is its uid. Clear all the associated callback
     # created in kv language.
@@ -48,79 +48,21 @@ class WidgetException(Exception):
     pass
 
 
-cdef class Widget(EventDispatcher):
-    '''Widget class. See module documentation for more information.
-
-    :Events:
-        `on_touch_down`:
-            Fired when a new touch event occurs
-        `on_touch_move`:
-            Fired when an existing touch moves
-        `on_touch_up`:
-            Fired when an existing touch disappears
-
-    .. versionchanged:: 1.0.9
-        Everything related to event properties has been moved to the
-        :class:`~kivy.event.EventDispatcher`. Event properties can now be used
-        when contructing a simple class without subclassing :class:`Widget`.
-
-    .. versionchanged:: 1.5.0
-        Constructor now accept on_* arguments to automatically bind
-        callbacks to properties or events, as the Kv language.
-    '''
+cdef class WidgetBase(EventDispatcher):
 
     __events__ = ('on_touch_down', 'on_touch_move', 'on_touch_up')
     
-    def __cinit__(self, **kwargs):
+    def __cinit__(self, *args, **kwargs):
         self._canvas = None
         self._context = None
         self._proxy_ref = None
-        Factory.register('WidgetBase', cls=self)
+        Factory.register(type(self).__name__, cls=self)
 
-    def __init__(self, **kwargs):
-        # Before doing anything, ensure the windows exist.
-        EventLoop.ensure_window()
-
-        # assign the default context of the widget creation
-        if self._context is None:
-            self._context = get_current_context()
-
-        super(Widget, self).__init__(**kwargs)
-
-        # Create the default canvas if not exist
-        if self.canvas is None:
-            self.canvas = Canvas(opacity=self.opacity)
-
-        # Apply all the styles
-        if '__no_builder' not in kwargs:
-            #current_root = Builder.idmap.get('root')
-            #Builder.idmap['root'] = self
-            Builder.apply(self)
-            #if current_root is not None:
-            #    Builder.idmap['root'] = current_root
-            #else:
-            #    Builder.idmap.pop('root')
-
-        # Bind all the events
-        for argument in kwargs:
-            if argument[:3] == 'on_':
-                self.bind(**{argument: kwargs[argument]})
+    property __self__:
+        def __get__(self):
+            return self
                 
     property canvas:
-        '''Canvas of the widget.
-    
-        The canvas is a graphics object that contains all the drawing instructions
-        for the graphical representation of the widget.
-    
-        There are no general properties for the Widget class, such as background
-        color, to keep the design simple and lean. Some derived classes, such as
-        Button, do add such convenience properties but generally the developer is
-        responsible for implementing the graphics representation for a custom
-        widget from the ground up. See the derived widget classes for patterns to
-        follow and extend.
-    
-        See :class:`~kivy.graphics.Canvas` for more information about the usage.
-        '''
         def __get__(self):
             return self._canvas
         
@@ -128,13 +70,6 @@ cdef class Widget(EventDispatcher):
             self._canvas = _canvas
 
     property proxy_ref:
-        '''Return a proxy reference to the widget, i.e. without creating a
-        reference to the widget. See `weakref.proxy
-        <http://docs.python.org/2/library/weakref.html?highlight\
-        =proxy#weakref.proxy>`_ for more information.
-
-        .. versionadded:: 1.7.2
-        '''
         def __get__(self):
             if self._proxy_ref:
                 return self._proxy_ref
@@ -147,7 +82,7 @@ cdef class Widget(EventDispatcher):
                 _widget_destructors[self.uid] = (f, _proxy_ref)
                 return _proxy_ref
 
-    cpdef bool __eq__(self, Widget other):
+    cpdef bint __eq__(self, Widget other):
         if not isinstance(other, Widget):
             return False
         return self.proxy_ref is other.proxy_ref
@@ -155,50 +90,10 @@ cdef class Widget(EventDispatcher):
     cpdef int __hash__(self):
         return id(self)
 
-    property __self__:
-        def __get__(self):
-            return self
-
-    #
-    # Collision
-    #
-    cpdef bool collide_point(self, float x, float y):
-        '''Check if a point (x, y) is inside the widget's axis aligned bounding
-        box.
-
-        :Parameters:
-            `x`: numeric
-                X position of the point (in window coordinates)
-            `y`: numeric
-                Y position of the point (in window coordinates)
-
-        :Returns:
-            bool, True if the point is inside the bounding box.
-
-        >>> Widget(pos=(10, 10), size=(50, 50)).collide_point(40, 40)
-        True
-        '''
+    cpdef bint collide_point(self, float x, float y):
         return self.x <= x <= self.right and self.y <= y <= self.top
 
     cpdef bool collide_widget(self, Widget wid):
-        '''Check if the other widget collides with this widget.
-        Performs an axis-aligned bounding box intersection test by default.
-
-        :Parameters:
-            `wid`: :class:`Widget` class
-                Widget to collide with.
-
-        :Returns:
-            bool, True if the other widget collides with this widget.
-
-        >>> wid = Widget(size=(50, 50))
-        >>> wid2 = Widget(size=(50, 50), pos=(25, 25))
-        >>> wid.collide_widget(wid2)
-        True
-        >>> wid2.pos = (55, 55)
-        >>> wid.collide_widget(wid2)
-        False
-        '''
         if self.right < wid.x:
             return False
         if self.x > wid.right:
@@ -209,21 +104,7 @@ cdef class Widget(EventDispatcher):
             return False
         return True
 
-    #
-    # Default event handlers
-    #
     cpdef bool on_touch_down(self, object touch):
-        '''Receive a touch down event.
-
-        :Parameters:
-            `touch`: :class:`~kivy.input.motionevent.MotionEvent` class
-                Touch received. The touch is in parent coordinates. See
-                :mod:`~kivy.uix.relativelayout` for a discussion on
-                coordinate systems.
-
-        :Returns:
-            bool. If True, the dispatching of the touch event will stop.
-        '''
         if self.disabled and self.collide_point(*touch.pos):
             return True
         cdef Widget *child
@@ -234,10 +115,6 @@ cdef class Widget(EventDispatcher):
             return False
 
     cpdef bool on_touch_move(self, object touch):
-        '''Receive a touch move event. The touch is in parent coordinates.
-
-        See :meth:`on_touch_down` for more information.
-        '''
         if self.disabled:
             return False
         cdef Widget *child
@@ -248,10 +125,6 @@ cdef class Widget(EventDispatcher):
             return False
 
     cpdef bool on_touch_up(self, object touch):
-        '''Receive a touch up event. The touch is in parent coordinates.
-
-        See :meth:`on_touch_down` for more information.
-        '''
         if self.disabled:
             return False
         cdef Widget *child
@@ -261,30 +134,7 @@ cdef class Widget(EventDispatcher):
         else:
             return False
 
-    def on_disabled(self, instance, value):
-        for child in self.children:
-            child.disabled = value
-
-    #
-    # Tree management
-    #
     cpdef add_widget(self, Widget widget, int index=0):
-        '''Add a new widget as a child of this widget.
-
-        :Parameters:
-            `widget`: :class:`Widget`
-                Widget to add to our list of children.
-            `index`: int, defaults to 0
-                *(this attribute was added in 1.0.5)*
-                Index to insert the widget in the list
-
-        >>> from kivy.uix.button import Button
-        >>> from kivy.uix.slider import Slider
-        >>> root = Widget()
-        >>> root.add_widget(Button())
-        >>> slider = Slider()
-        >>> root.add_widget(slider)
-        '''
         if not isinstance(widget, Widget):
             raise WidgetException(
                 'add_widget() can be used only with Widget classes.')
@@ -325,18 +175,6 @@ cdef class Widget(EventDispatcher):
             canvas.insert(next_index, widget.canvas)
 
     cpdef remove_widget(self, Widget widget):
-        '''Remove a widget from the children of this widget.
-
-        :Parameters:
-            `widget`: :class:`Widget`
-                Widget to remove from our children list.
-
-        >>> from kivy.uix.button import Button
-        >>> root = Widget()
-        >>> button = Button()
-        >>> root.add_widget(button)
-        >>> root.remove_widget(button)
-        '''
         if widget not in self.children:
             return
         self.children.remove(widget)
@@ -344,14 +182,6 @@ cdef class Widget(EventDispatcher):
         widget.parent = None
 
     cpdef clear_widgets(self, object children=None):
-        '''Remove all widgets added to this widget.
-
-        .. versionchanged:: 1.8.0
-
-            `children` argument can be used to select the children we want to
-            remove. It should be a list of children (or filtered list) of the
-            current widget.
-        '''
 
         if not children:
             children = self.children
@@ -361,295 +191,91 @@ cdef class Widget(EventDispatcher):
             remove_widget(child)
 
     cpdef object get_root_window(self):
-        '''Return the root window.
-
-        :Returns:
-            Instance of the root window. Can be a
-            :class:`~kivy.core.window.WindowBase` or
-            :class:`Widget`.
-        '''
         if self.parent:
             return self.parent.get_root_window()
 
     cpdef object get_parent_window(self):
-        '''Return the parent window.
-
-        :Returns:
-            Instance of the parent window. Can be a
-            :class:`~kivy.core.window.WindowBase` or
-            :class:`Widget`.
-        '''
         if self.parent:
             return self.parent.get_parent_window()
 
     cpdef tuple to_local(self, float x, float y, bool relative=False):
-        '''Transform parent coordinates to local coordinates. See
-        :mod:`~kivy.uix.relativelayout` for details on the coordinate systems.
-
-        :Parameters:
-            `relative`: bool, defaults to False
-                Change to True if you want to translate coordinates to
-                relative widget coordinates.
-        '''
         if relative:
             return (x - self.x, y - self.y)
         return (x, y)
 
     cpdef tuple to_widget(self, float x, float y, bool relative=False):
-        '''Convert the given coordinate from window to local widget
-        coordinates. See :mod:`~kivy.uix.relativelayout` for details on the
-        coordinate systems.
-        '''
         if self.parent:
             x, y = self.parent.to_widget(x, y)
         return self.to_local(x, y, relative=relative)
 
     cpdef tuple to_parent(self, float x, float y, bool relative=False):
-        '''Transform local coordinates to parent coordinates. See
-        :mod:`~kivy.uix.relativelayout` for details on the coordinate systems.
-
-        :Parameters:
-            `relative`: bool, defaults to False
-                Change to True if you want to translate relative positions from
-                a widget to its parent coordinates.
-        '''
         if relative:
             return (x + self.x, y + self.y)
         return (x, y)
 
     cpdef tuple to_window(self, float x, float y, bool initial=True, bool relative=False):
-        '''Transform local coordinates to window coordinates. See
-        :mod:`~kivy.uix.relativelayout` for details on the coordinate systems.
-        '''
         if not initial:
             x, y = self.to_parent(x, y, relative=relative)
         if self.parent:
-            return self.parent.to_window(x, y, initial=False,
-                                         relative=relative)
+            return self.parent.to_window(x, y, initial=False, relative=relative)
         return (x, y)
 
-    x = NumericProperty(0)
-    '''X position of the widget.
-
-    :attr:`x` is a :class:`~kivy.properties.NumericProperty` and defaults to 0.
-    '''
-
-    y = NumericProperty(0)
-    '''Y position of the widget.
-
-    :attr:`y` is a :class:`~kivy.properties.NumericProperty` and defaults to 0.
-    '''
-
-    width = NumericProperty(100)
-    '''Width of the widget.
-
-    :attr:`width` is a :class:`~kivy.properties.NumericProperty` ans defaults
-    to 100.
-
-    .. warning::
-        Keep in mind that the `width` property is subject to layout logic and
-        that this has not yet happened at the time of the widget's `__init__`
-        method.
-    '''
-
-    height = NumericProperty(100)
-    '''Height of the widget.
-
-    :attr:`height` is a :class:`~kivy.properties.NumericProperty` and defaults
-    to 100.
-
-    .. warning::
-        Keep in mind that the `height` property is subject to layout logic and
-        that this has not yet happened at the time of the widget's `__init__`
-        method.
-    '''
-
-    pos = ReferenceListProperty(x, y)
-    '''Position of the widget.
-
-    :attr:`pos` is a :class:`~kivy.properties.ReferenceListProperty` of
-    (:attr:`x`, :attr:`y`) properties.
-    '''
-
-    size = ReferenceListProperty(width, height)
-    '''Size of the widget.
-
-    :attr:`size` is a :class:`~kivy.properties.ReferenceListProperty` of
-    (:attr:`width`, :attr:`height`) properties.
-    '''
-
-    right = AliasProperty(BoundsGS.get_right, BoundsGS.set_right, bind=('x', 'width'))
-    '''Right position of the widget.
-
-    :attr:`right` is an :class:`~kivy.properties.AliasProperty` of
-    (:attr:`x` + :attr:`width`),
-    '''
-
-    top = AliasProperty(BoundsGS.get_top, BoundsGS.set_top, bind=('y', 'height'))
-    '''Top position of the widget.
-
-    :attr:`top` is an :class:`~kivy.properties.AliasProperty` of
-    (:attr:`y` + :attr:`height`),
-    '''
-
-    center_x = AliasProperty(BoundsGS.get_center_x, BoundsGS.set_center_x, bind=('x', 'width'))
-    '''X center position of the widget.
-
-    :attr:`center_x` is an :class:`~kivy.properties.AliasProperty` of
-    (:attr:`x` + :attr:`width` / 2.),
-    '''
-
-    center_y = AliasProperty(BoundsGS.get_center_y, BoundsGS.set_center_y, bind=('y', 'height'))
-    '''Y center position of the widget.
-
-    :attr:`center_y` is an :class:`~kivy.properties.AliasProperty` of
-    (:attr:`y` + :attr:`height` / 2.)
-    '''
-
-    center = ReferenceListProperty(BoundsGS.center_x, BoundsGS.center_y)
-    '''Center position of the widget.
-
-    :attr:`center` is a :class:`~kivy.properties.ReferenceListProperty` of
-    (:attr:`center_x`, :attr:`center_y`)
-    '''
-
-    cls = ListProperty([])
-    '''Class of the widget, used for styling.
-    '''
-
-    id = StringProperty(None, allownone=True)
-    '''Unique identifier of the widget in the tree.
-
-    :attr:`id` is a :class:`~kivy.properties.StringProperty` and defaults to
-    None.
-
-    .. warning::
-
-        If the :attr:`id` is already used in the tree, an exception will
-        be raised.
-    '''
-
-    children = ListProperty([])
-    '''List of children of this widget.
-
-    :attr:`children` is a :class:`~kivy.properties.ListProperty` and
-    defaults to an empty list.
-
-    Use :meth:`add_widget` and :meth:`remove_widget` for manipulating the
-    children list. Don't manipulate the children list directly unless you know
-    what you are doing.
-    '''
-
-    parent = ObjectProperty(None, allownone=True)
-    '''Parent of this widget.
-
-    :attr:`parent` is an :class:`~kivy.properties.ObjectProperty` and
-    defaults to None.
-
-    The parent of a widget is set when the widget is added to another widget
-    and unset when the widget is removed from its parent.
-    '''
-
-    size_hint_x = NumericProperty(1, allownone=True)
-    '''X size hint. Represents how much space the widget should use in the
-    direction of the X axis relative to its parent's width.
-    Only the :class:`~kivy.uix.layout.Layout` and
-    :class:`~kivy.core.window.Window` classes make use of the hint.
-
-    The value is in percent as a float from 0. to 1., where 1. means the full
-    size of his parent. 0.5 represents 50%.
-
-    :attr:`size_hint_x` is a :class:`~kivy.properties.NumericProperty` and
-    defaults to 1.
-    '''
-
-    size_hint_y = NumericProperty(1, allownone=True)
-    '''Y size hint.
-
-    :attr:`size_hint_y` is a :class:`~kivy.properties.NumericProperty` and
-    defaults to 1.
-
-    See :attr:`size_hint_x` for more information
-    '''
-
-    size_hint = ReferenceListProperty(size_hint_x, size_hint_y)
-    '''Size hint.
-
-    :attr:`size_hint` is a :class:`~kivy.properties.ReferenceListProperty` of
-    (:attr:`size_hint_x`, :attr:`size_hint_y`).
-
-    See :attr:`size_hint_x` for more information
-    '''
-
-    pos_hint = ObjectProperty({})
-    '''Position hint. This property allows you to set the position of
-    the widget inside its parent layout, in percent (similar to
-    size_hint).
-
-    For example, if you want to set the top of the widget to be at 90%
-    height of its parent layout, you can write:
-
-        widget = Widget(pos_hint={'top': 0.9})
-
-    The keys 'x', 'right' and 'center_x' will use the parent width.
-    The keys 'y', 'top' and 'center_y' will use the parent height.
-
-    See :doc:`api-kivy.uix.floatlayout` for further reference.
-
-    Position hint is only used by the
-    :class:`~kivy.uix.floatlayout.FloatLayout` and
-    :class:`~kivy.core.window.Window`.
-
-    :attr:`pos_hint` is an :class:`~kivy.properties.ObjectProperty`
-    containing a dict.
-    '''
-
-    ids = DictProperty({})
-    '''This is a Dictionary of id's defined in your kv language. This will only
-    be populated if you use id's in your kv language code.
-
-    .. versionadded:: 1.7.0
-
-    :attr:`ids` is a :class:`~kivy.properties.DictProperty` and defaults to a
-    empty dict {}.
-    '''
-
-    opacity = NumericProperty(1.0)
-    '''Opacity of the widget and all the children.
-
-    .. versionadded:: 1.4.1
-
-    The opacity attribute controls the opacity of the widget and its children.
-    Be careful, it's a cumulative attribute: the value is multiplied by the
-    current global opacity and the result is applied to the current context
-    color.
-
-    For example, if the parent has an opacity of 0.5 and a child has an
-    opacity of 0.2, the real opacity of the child will be 0.5 * 0.2 = 0.1.
-
-    Then, the opacity is applied by the shader as::
-
-        frag_color = color * vec4(1.0, 1.0, 1.0, opacity);
-
-    :attr:`opacity` is a :class:`~kivy.properties.NumericProperty` and defaults
-    to 1.0.
-    '''
+    def on_disabled(self, instance, value):
+        for child in self.children:
+            child.disabled = value
 
     def on_opacity(self, instance, value):
         canvas = self.canvas
         if canvas is not None:
             canvas.opacity = value
-
+            
+    x = NumericProperty(0)
+    y = NumericProperty(0)
+    width = NumericProperty(100)
+    height = NumericProperty(100)
+    pos = ReferenceListProperty(x, y)
+    size = ReferenceListProperty(width, height)
+    right = AliasProperty(BoundsGS.get_right, BoundsGS.set_right, bind=('x', 'width'))
+    top = AliasProperty(BoundsGS.get_top, BoundsGS.set_top, bind=('y', 'height'))
+    center_x = AliasProperty(BoundsGS.get_center_x, BoundsGS.set_center_x, bind=('x', 'width'))
+    center_y = AliasProperty(BoundsGS.get_center_y, BoundsGS.set_center_y, bind=('y', 'height'))
+    center = ReferenceListProperty(BoundsGS.center_x, BoundsGS.center_y)
+    cls = ListProperty([])
+    id = StringProperty(None, allownone=True)
+    children = ListProperty([])
+    parent = ObjectProperty(None, allownone=True)
+    size_hint_x = NumericProperty(1, allownone=True)
+    size_hint_y = NumericProperty(1, allownone=True)
+    size_hint = ReferenceListProperty(size_hint_x, size_hint_y)
+    pos_hint = ObjectProperty({})
+    ids = DictProperty({})
+    opacity = NumericProperty(1.0)
     disabled = BooleanProperty(False)
-    '''Indicates whether this widget can interact with input or not.
 
-    .. Note::
-        1. Child Widgets, when added to a disabled widget, will be disabled
-        automatically,
-        2. Disabling/enabling a parent disables/enables all it's children.
 
-    .. versionadded:: 1.8.0
+cdef class Widget(WidgetBase):
 
-    :attr:`disabled` is a :class:`~kivy.properties.BooleanProperty` and
-    defaults to False.
-    '''
+    def __init__(self, **kwargs):
+        # Before doing anything, ensure the windows exist.
+        EventLoop.ensure_window()
+
+        # assign the default context of the widget creation
+        if self._context is None:
+            self._context = get_current_context()
+
+        super(Widget, self).__init__(**kwargs)
+
+        # Create the default canvas if not exist
+        if self.canvas is None:
+            self.canvas = Canvas(opacity=self.opacity)
+
+        # Apply all the styles
+        if '__no_builder' not in kwargs:
+            #current_root = Builder.idmap.get('root')
+            #Builder.idmap['root'] = self
+            Builder.apply(self)
+
+        # Bind all the events
+        for argument in kwargs:
+            if argument[:3] == 'on_':
+                self.bind(**{argument: kwargs[argument]})
