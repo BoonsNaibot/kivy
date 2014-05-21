@@ -11,7 +11,7 @@ cdef class WidgetBase(EventDispatcher):
     cdef object __weakref__
     cdef public tuple __events__
     cdef object _canvas
-    cdef dict _context
+    cdef public dict _context
     cdef object _proxy_ref
     cpdef add_widget(self, object widget, int index=*)
     cpdef object get_parent_window(self)
