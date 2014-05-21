@@ -58,30 +58,6 @@ cdef class WidgetBase(EventDispatcher):
         self._proxy_ref = None
         Factory.register(type(self).__name__, cls=self)
 
-    property __self__:
-        def __get__(self):
-            return self
-                
-    property canvas:
-        def __get__(self):
-            return self._canvas
-        
-        def __set__(self, _canvas):
-            self._canvas = _canvas
-
-    property proxy_ref:
-        def __get__(self):
-            if self._proxy_ref:
-                return self._proxy_ref
-            else:
-                f = partial(_widget_destructor, self.uid)
-                self._proxy_ref = _proxy_ref = PyWeakref_NewProxy(self, f)
-                # only f should be enough here, but it appears that is a very
-                # specific case, the proxy destructor is not called if both f and
-                # _proxy_ref are not together in a tuple
-                _widget_destructors[self.uid] = (f, _proxy_ref)
-                return _proxy_ref
-
     cpdef add_widget(self, object widget, int index=0):
         if not isinstance(widget, Widget):
             raise WidgetException('add_widget() can be used only with Widget classes.')
@@ -183,26 +159,26 @@ cdef class WidgetBase(EventDispatcher):
             self.canvas.remove(widget.canvas)
             widget.parent = None
 
-    cpdef tuple to_local(self, float x, float y, bint relative=False):
+    cpdef tuple to_local(self, float x, float y, bint relative=0):
         if relative:
             return (x - self.x, y - self.y)
         return (x, y)
 
-    cpdef tuple to_parent(self, float x, float y, bint relative=False):
+    cpdef tuple to_parent(self, float x, float y, bint relative=0):
         if relative:
             return (x + self.x, y + self.y)
         return (x, y)
 
-    cpdef tuple to_widget(self, float x, float y, bint relative=False):
+    cpdef tuple to_widget(self, float x, float y, bint relative=0):
         if self.parent:
             cdef float x, y = self.parent.to_widget(x, y)
         return self.to_local(x, y, relative=relative)
 
-    cpdef tuple to_window(self, float x, float y, bint initial=True, bint relative=False):
+    cpdef tuple to_window(self, float x, float y, bint initial=1, bint relative=0):
         if not initial:
             cdef float x, y = self.to_parent(x, y, relative=relative)
         if self.parent:
-            return self.parent.to_window(x, y, initial=False, relative=relative)
+            return self.parent.to_window(x, y, initial=0, relative=relative)
         return (x, y)
 
     def __hash__(self):
@@ -222,6 +198,30 @@ cdef class WidgetBase(EventDispatcher):
         canvas = self.canvas
         if canvas is not None:
             canvas.opacity = value
+
+    property __self__:
+        def __get__(self):
+            return self
+                
+    property canvas:
+        def __get__(self):
+            return self._canvas
+        
+        def __set__(self, _canvas):
+            self._canvas = _canvas
+
+    property proxy_ref:
+        def __get__(self):
+            if self._proxy_ref:
+                return self._proxy_ref
+            else:
+                f = partial(_widget_destructor, self.uid)
+                self._proxy_ref = _proxy_ref = PyWeakref_NewProxy(self, f)
+                # only f should be enough here, but it appears that is a very
+                # specific case, the proxy destructor is not called if both f and
+                # _proxy_ref are not together in a tuple
+                _widget_destructors[self.uid] = (f, _proxy_ref)
+                return _proxy_ref
             
     x = NumericProperty(0)
     y = NumericProperty(0)
