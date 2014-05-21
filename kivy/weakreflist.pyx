@@ -20,7 +20,8 @@ cdef class WeakList(list):
         return _get_object(super(WeakList, self).__getitem__(item))
 
     def __getslice__(self, int i, int j):
-        return [_get_object(x) for x in super(WeakList, self).__getslice__(i, j)] #slow?
+        cdef list __getslice__ = super(WeakList, self).__getslice__(i, j)
+        return [_get_object(x) for x in __getslice__] #slow?
 
     def __iter__(self):
         for x in super(WeakList, self).__iter__():
