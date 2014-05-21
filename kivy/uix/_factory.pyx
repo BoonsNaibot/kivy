@@ -47,11 +47,6 @@ cdef class FactoryBase(object):
 
         self.classes[classname] = self._create_machine(cls, module, is_template, baseclasses, filename)
 
-    def unregister(self, *classnames):
-        for classname in classnames:
-            if classname in self.classes:
-                self.classes.pop(classname)
-
     cpdef unregister_from_filename(self, str filename):
         cdef str x
         cdef list to_remove = [x for x in self.classes if self.classes[x].filename == filename]
@@ -97,3 +92,8 @@ cdef class FactoryBase(object):
 
     def get(self, *args):
         return self.__getattr__(*args)
+
+    def unregister(self, *classnames):
+        for classname in classnames:
+            if classname in self.classes:
+                self.classes.pop(classname)
