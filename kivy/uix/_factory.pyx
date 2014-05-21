@@ -58,7 +58,7 @@ cdef class FactoryBase(object):
         for x in to_remove:
             del self.classes[x]
 
-    def __getattr__(self, name):
+    def __getattr__(self, str name):
         cdef dict classes = self.classes
         if name not in classes:
             if name[0] == name[0].lower():
