@@ -18,28 +18,28 @@ cpdef _widget_destructor(int uid, object r):
     del _widget_destructors[uid]
     Builder.unbind_widget(uid)
 
-cpdef float get_right(self):
+cpdef float get_right(object self):
     return self.x + self.width
 
-cpdef set_right(self, float value):
+cpdef set_right(object self, float value):
     self.x = value - self.width
 
-cpdef float get_top(self):
+cpdef float get_top(object self):
     return self.y + self.height
 
-cpdef set_top(self, float value):
+cpdef set_top(object self, float value):
     self.y = value - self.height
 
-cpdef float get_center_x(self):
+cpdef float get_center_x(object self):
     return self.x + self.width / 2.
 
-cpdef set_center_x(self, float value):
+cpdef set_center_x(object self, float value):
     self.x = value - self.width / 2.
 
-cpdef float get_center_y(self):
+cpdef float get_center_y(object self):
     return self.y + self.height / 2.
 
-cpdef set_center_y(self, float value):
+cpdef set_center_y(object self, float value):
     self.y = value - self.height / 2.
 
 
