@@ -182,7 +182,7 @@ cdef class WidgetBase(EventDispatcher):
         return (x, y)
 
     def __hash__(self):
-        return id(self)
+        return <long><void*>self
 
     def __richcmp__(self, object other, int i):
         if i == 2:
