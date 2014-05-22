@@ -12,6 +12,8 @@ cdef class Machine:
     cdef readonly bint is_template
     cdef readonly str baseclasses
     cdef readonly str filename
+    
+    __slots__ = ('cls', 'module', 'is_template', 'baseclasses', 'filename')
 
     def __cinit__(self, cls, module, is_template, baseclasses, filename):
         self.cls = cls
