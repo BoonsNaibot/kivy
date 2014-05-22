@@ -14,32 +14,30 @@ cpdef _widget_destructor(int uid, object r):
     # created in kv language.
     del _widget_destructors[uid]
     Builder.unbind_widget(uid)
-    
-cdef class BoundsGS:
 
-    cpdef float get_right(self):
-        return self.x + self.width
+cpdef float get_right(self):
+    return self.x + self.width
 
-    cpdef set_right(self, float value):
-        self.x = value - self.width
+cpdef set_right(self, float value):
+    self.x = value - self.width
 
-    cpdef float get_top(self):
-        return self.y + self.height
+cpdef float get_top(self):
+    return self.y + self.height
 
-    cpdef set_top(self, float value):
-        self.y = value - self.height
+cpdef set_top(self, float value):
+    self.y = value - self.height
 
-    cpdef float get_center_x(self):
-        return self.x + self.width / 2.
+cpdef float get_center_x(self):
+    return self.x + self.width / 2.
 
-    cpdef set_center_x(self, float value):
-        self.x = value - self.width / 2.
+cpdef set_center_x(self, float value):
+    self.x = value - self.width / 2.
 
-    cpdef float get_center_y(self):
-        return self.y + self.height / 2.
+cpdef float get_center_y(self):
+    return self.y + self.height / 2.
 
-    cpdef set_center_y(self, float value):
-        self.y = value - self.height / 2.
+cpdef set_center_y(self, float value):
+    self.y = value - self.height / 2.
 
 
 class WidgetException(Exception):
@@ -54,9 +52,8 @@ cdef class WidgetBase(EventDispatcher):
     
     def __cinit__(self, *args, **kwargs):
         self._canvas = None
-        self._context = None
         self._proxy_ref = None
-        Factory.register(type(self).__name__, cls=self)
+        Factory.register(self.__class__.__name__, cls=self)
 
     cpdef add_widget(self, object widget, int index=0):
         if not isinstance(widget, Widget):
@@ -68,7 +65,7 @@ cdef class WidgetBase(EventDispatcher):
 
         # check if widget is already a child of another widget
         if widget.parent:
-            raise WidgetException('Cannot add {!r}, it already has a parent {!r}'.format(widget, parent))
+            raise WidgetException('Cannot add {!r}, it already has a parent {!r}'.format(widget, widget.parent))
         widget.parent = parent = self.proxy_ref
         # child will be disabled if added to a disabled parent
         if parent.disabled:
@@ -79,7 +76,7 @@ cdef class WidgetBase(EventDispatcher):
             self.canvas.add(widget.canvas)
         else:
             canvas = self.canvas
-            cdef list children = self.children
+            children = self.children
             if index >= len(children):
                 index = len(children)
                 next_index = 0
@@ -171,12 +168,12 @@ cdef class WidgetBase(EventDispatcher):
 
     cpdef tuple to_widget(self, float x, float y, bint relative=0):
         if self.parent:
-            cdef float x, y = self.parent.to_widget(x, y)
+            x, y = self.parent.to_widget(x, y)
         return self.to_local(x, y, relative=relative)
 
     cpdef tuple to_window(self, float x, float y, bint initial=1, bint relative=0):
         if not initial:
-            cdef float x, y = self.to_parent(x, y, relative=relative)
+            x, y = self.to_parent(x, y, relative=relative)
         if self.parent:
             return self.parent.to_window(x, y, initial=0, relative=relative)
         return (x, y)
@@ -212,7 +209,7 @@ cdef class WidgetBase(EventDispatcher):
 
     property proxy_ref:
         def __get__(self):
-            if self._proxy_ref:
+            if self._proxy_ref is not None:
                 return self._proxy_ref
             else:
                 f = partial(_widget_destructor, self.uid)
@@ -222,18 +219,18 @@ cdef class WidgetBase(EventDispatcher):
                 # _proxy_ref are not together in a tuple
                 _widget_destructors[self.uid] = (f, _proxy_ref)
                 return _proxy_ref
-            
+
     x = NumericProperty(0)
     y = NumericProperty(0)
     width = NumericProperty(100)
     height = NumericProperty(100)
     pos = ReferenceListProperty(x, y)
     size = ReferenceListProperty(width, height)
-    right = AliasProperty(BoundsGS.get_right, BoundsGS.set_right, bind=('x', 'width'))
-    top = AliasProperty(BoundsGS.get_top, BoundsGS.set_top, bind=('y', 'height'))
-    center_x = AliasProperty(BoundsGS.get_center_x, BoundsGS.set_center_x, bind=('x', 'width'))
-    center_y = AliasProperty(BoundsGS.get_center_y, BoundsGS.set_center_y, bind=('y', 'height'))
-    center = ReferenceListProperty(BoundsGS.center_x, BoundsGS.center_y)
+    right = AliasProperty(get_right, set_right, bind=('x', 'width'))
+    top = AliasProperty(get_top, set_top, bind=('y', 'height'))
+    center_x = AliasProperty(get_center_x, set_center_x, bind=('x', 'width'))
+    center_y = AliasProperty(get_center_y, set_center_y, bind=('y', 'height'))
+    center = ReferenceListProperty(center_x, center_y)
     cls = ListProperty([])
     id = StringProperty(None, allownone=True)
     children = ListProperty([])
