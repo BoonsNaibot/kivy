@@ -684,6 +684,7 @@ from kivy.compat import PY2, iteritems, iterkeys
 from kivy.context import register_context
 from kivy.resources import resource_find
 import kivy.metrics as Metrics
+from weakref import proxy
 
 
 trace = Logger.trace
@@ -954,7 +955,7 @@ class ParserRule(object):
                 raise ParserException(
                     self.ctx, self.line,
                     'Only one root object is allowed by .kv')
-            self.ctx.root = self
+            self.ctx.root = proxy(self)
 
     def _build_rule(self):
         name = self.name
