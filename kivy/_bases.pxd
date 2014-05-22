@@ -33,6 +33,6 @@ cdef class EventLoopBase(EventDispatcher):
     cpdef close(self)
     cdef post_dispatch_input(self, str etype, object me)
     cdef dispatch_input(self)
-    cdef idle(self)
+    cpdef bint idle(self)
     cpdef run(self)
     cpdef exit(self)
