@@ -103,7 +103,7 @@ cdef class EventLoopBase(EventDispatcher):
         def __get__(self):
             return self._window
         def __set__(self, object _window):
-            self._window = _window
+            self._window = PyWeakref_NewProxy(_window, None)
 
     def ensure_window(self):
         '''Ensure that we have a window.
