@@ -8,6 +8,9 @@ from kivy.lang import Builder
 from kivy.context import get_current_context
 from functools import partial
 
+# references to all the destructors widgets (partial method with widget uid as key.)
+cdef dict _widget_destructors = {}
+
 cpdef _widget_destructor(int uid, object r):
     # internal method called when a widget is deleted from memory. the only
     # thing we remember about it is its uid. Clear all the associated callback
@@ -212,6 +215,7 @@ cdef class WidgetBase(EventDispatcher):
             if self._proxy_ref is not None:
                 return self._proxy_ref
             else:
+                global _widget_destructors
                 f = partial(_widget_destructor, self.uid)
                 self._proxy_ref = _proxy_ref = PyWeakref_NewProxy(self, f)
                 # only f should be enough here, but it appears that is a very
