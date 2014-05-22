@@ -89,7 +89,7 @@ cdef class EventLoopBase(EventDispatcher):
         self.status = 'idle'
         self.input_providers = []
         self.input_providers_autoremove = []
-        self.event_listeners = []
+        self.event_listeners = WeakList()
         self._window = None
         self.me_list = []
 
