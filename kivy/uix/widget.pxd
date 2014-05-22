@@ -1,5 +1,5 @@
 from kivy._event cimport EventDispatcher
-from kivy.properties cimport AliasProperty, BooleanProperty, DictProperty, ListProperty, NumericProperty, ObjectProperty, Property, ReferenceListProperty, StringProperty
+from kivy.properties cimport AliasProperty, BooleanProperty, DictProperty, ListProperty, NumericProperty, ObjectProperty, ReferenceListProperty, StringProperty
 
 cdef extern from "Python.h":
     object PyWeakref_NewProxy(object ob, object callback)
