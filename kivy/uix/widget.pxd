@@ -8,10 +8,8 @@ cdef extern from "Python.h":
 cdef dict _widget_destructors = {}
 
 cdef class WidgetBase(EventDispatcher):
-    cdef object __weakref__
-    cdef public tuple __events__
     cdef object _canvas
-    cdef public dict _context
+    cdef public object _context
     cdef object _proxy_ref
     cpdef add_widget(self, object widget, int index=*)
     cpdef object get_parent_window(self)
@@ -21,12 +19,13 @@ cdef class WidgetBase(EventDispatcher):
     cpdef bint on_touch_down(self, object touch)
     cpdef bint on_touch_move(self, object touch)
     cpdef bint on_touch_up(self, object touch)
+    cpdef clear_widgets(self, list children=*)
     cpdef remove_widget(self, object widget)
     cpdef tuple to_local(self, float x, float y, bint relative=*)
     cpdef tuple to_parent(self, float x, float y, bint relative=*)
     cpdef tuple to_widget(self, float x, float y, bint relative=*)
     cpdef tuple to_window(self, float x, float y, bint initial=*, bint relative=*)
-    cdef public Property center, center_x, center_y, children, cls, disabled, height, id, ids, opacity, parent, pos, pos_hint, right, size, size_hint, size_hint_x, size_hint_y, top, width, x, y
+
 
 cdef class Widget(WidgetBase):
     pass
