@@ -21,7 +21,7 @@ cdef class ExceptionHandler(object):
     def __init__(self):
         pass
 
-    cpdef handle_exception(self, object exception):
+    def handle_exception(self, object exception):
         '''Handle one exception, defaults to returning
         ExceptionManager.STOP.
         '''
@@ -31,24 +31,24 @@ cdef class ExceptionHandler(object):
 cdef class ExceptionManagerBase:
     '''ExceptionManager manages exceptions handlers.'''
 
-    cdef bint RAISE = 0
-    cdef bint PASS = 1
+    RAISE = 0
+    PASS = 1
 
     def __cinit__(self):
         self.handlers = []
         self.policy = self.RAISE
 
-    cpdef add_handler(self, object cls):
+    def add_handler(self, object cls):
         '''Add a new exception handler to the stack.'''
         if not cls in self.handlers:
             self.handlers.append(cls)
 
-    cpdef remove_handler(self, object cls):
+    def remove_handler(self, object cls):
         '''Remove a exception handler from the stack.'''
         if cls in self.handlers:
             self.handlers.remove(cls)
 
-    cpdef handle_exception(self, object inst):
+    def handle_exception(self, object inst):
         '''Called when an exception occured in the runTouchApp() main loop.'''
         cdef bint r
         cdef bint ret = self.policy
@@ -87,7 +87,12 @@ cdef class EventLoopBase(EventDispatcher):
         def __get__(self):
             return self._window
         def __set__(self, object _window):
-            self._window = PyWeakref_NewProxy(_window, None)
+            if _window is not None:
+                def _c(*args):
+                    self._window = None
+                _window = PyWeakref_NewProxy(_window, _c)
+
+            self._window = _window
 
     def ensure_window(self):
         '''Ensure that we have a window.
@@ -97,7 +102,7 @@ cdef class EventLoopBase(EventDispatcher):
             Logger.critical('App: Unable to get a Window, abort.')
             sys.exit(1)
 
-    cpdef add_input_provider(self, provider, bint auto_remove=0):
+    cpdef add_input_provider(self, object provider, bint auto_remove=0):
         '''Add a new input provider to listen for touch events.
         '''
         if provider not in self.input_providers:
@@ -105,19 +110,19 @@ cdef class EventLoopBase(EventDispatcher):
             if auto_remove:
                 self.input_providers_autoremove.append(provider)
 
-    cpdef remove_input_provider(self, provider):
+    cpdef remove_input_provider(self, object provider):
         '''Remove an input provider.
         '''
         if provider in self.input_providers:
             self.input_providers.remove(provider)
 
-    cpdef add_event_listener(self, listener):
+    cpdef add_event_listener(self, object listener):
         '''Add a new event listener for getting touch events.
         '''
         if not listener in self.event_listeners:
             self.event_listeners.append(listener)
 
-    cpdef remove_event_listener(self, listener):
+    cpdef remove_event_listener(self, object listener):
         '''Remove an event listener from the list.
         '''
         if listener in self.event_listeners:
@@ -159,13 +164,13 @@ cdef class EventLoopBase(EventDispatcher):
         self.status = 'stopped'
         self.dispatch('on_stop')
 
-    def add_postproc_module(self, mod):
+    cpdef add_postproc_module(self, object mod):
         '''Add a postproc input module (DoubleTap, TripleTap, DeJitter
         RetainTouch are defaults).'''
         if mod not in self.postproc_modules:
             self.postproc_modules.append(mod)
 
-    def remove_postproc_module(self, mod):
+    cpdef remove_postproc_module(self, object mod):
         '''Remove a postproc module.'''
         if mod in self.postproc_modules:
             self.postproc_modules.remove(mod)
@@ -276,7 +281,7 @@ cdef class EventLoopBase(EventDispatcher):
         while input_events:
             post_dispatch_input(*pop(0))
 
-    def idle(self):
+    cpdef bint idle(self):
         '''This function is called after every frame. By default:
 
            * it "ticks" the clock to the next frame.
@@ -320,23 +325,23 @@ cdef class EventLoopBase(EventDispatcher):
             self.idle()
         self.exit()
 
-    cpdef exit(self):
+    cdef exit(self):
         '''Close the main loop and close the window.'''
         self.close()
-        if self.window:
+        if self.window is not None:
             self.window.close()
 
-    cpdef on_stop(self):
+    def on_stop(self):
         '''Event handler for `on_stop` events which will be fired right
         after all input providers have been stopped.'''
         pass
 
-    cpdef on_pause(self):
+    def on_pause(self):
         '''Event handler for `on_pause` which will be fired when
         the event loop is paused.'''
         pass
 
-    cpdef on_start(self):
+    def on_start(self):
         '''Event handler for `on_start` which will be fired right
         after all input providers have been started.'''
         pass
