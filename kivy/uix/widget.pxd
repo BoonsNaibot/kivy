@@ -3,9 +3,6 @@ from kivy.properties cimport AliasProperty, BooleanProperty, DictProperty, ListP
 
 cdef extern from "Python.h":
     object PyWeakref_NewProxy(object ob, object callback)
-    
-# references to all the destructors widgets (partial method with widget uid as key.)
-cdef dict _widget_destructors = {}
 
 cdef class WidgetBase(EventDispatcher):
     cdef object _canvas
