@@ -19,7 +19,7 @@ cdef class EventLoopBase(EventDispatcher):
     cdef bint quit
     cdef list input_events
     cdef list postproc_modules
-    cdef str status
+    cdef readonly str status
     cdef list input_providers
     cdef list input_providers_autoremove
     cdef list event_listeners
