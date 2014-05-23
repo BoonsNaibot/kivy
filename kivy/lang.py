@@ -684,12 +684,12 @@ from kivy.compat import PY2, iteritems, iterkeys
 from kivy.context import register_context
 from kivy.resources import resource_find
 import kivy.metrics as Metrics
-from weakref import ref, proxy, WeakKeyDictionary
+from weakref import ref, proxy, WeakKeyDictionary, WeakValueDictionary
 from kivy.weakreflist import WeakList
 
 
 trace = Logger.trace
-global_idmap = {}
+global_idmap = WeakValueDictionary()
 
 # late import
 Instruction = None
