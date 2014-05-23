@@ -684,7 +684,8 @@ from kivy.compat import PY2, iteritems, iterkeys
 from kivy.context import register_context
 from kivy.resources import resource_find
 import kivy.metrics as Metrics
-from weakref import proxy
+from weakref import ref, proxy, WeakKeyDictionary
+from kivy.weakreflist import WeakList
 
 
 trace = Logger.trace
@@ -900,7 +901,7 @@ class ParserRule(object):
         #: Handlers associated to the rule
         self.handlers = []
         #: Properties cache list: mark which class have already been checked
-        self.cache_marked = []
+        self.cache_marked = WeakList()
         #: Indicate if any previous rules should be avoided.
         self.avoid_previous_rules = False
 
@@ -1377,7 +1378,7 @@ class ParserSelectorClass(ParserSelector):
 
 class ParserSelectorName(ParserSelector):
 
-    parents = {}
+    parents = WeakKeyDictionary()
 
     def get_bases(self, cls):
         for base in cls.__bases__:
@@ -1737,7 +1738,7 @@ class BuilderBase(object):
         '''Return a list of :class:`ParserRule` objects matching the widget.
         '''
         cache = BuilderBase._match_cache
-        k = (widget.__class__, widget.id, tuple(widget.cls))
+        k = (ref(widget.__class__), widget.id, tuple(widget.cls))
         if k in cache:
             return cache[k]
         rules = []
