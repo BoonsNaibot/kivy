@@ -81,7 +81,7 @@ cdef class FactoryBase(object):
                 self.classes[name] = self._create_machine(cls, item.module, item.is_template, item.baseclasses, item.filename)
 
             elif item.baseclasses:
-                cdef list rootwidgets = []
+                rootwidgets = []
                 for basecls in item.baseclasses.split('+'):
                     rootwidgets.append(self.get(basecls))
                 cls = type(name, tuple(rootwidgets), {})
