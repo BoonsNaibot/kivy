@@ -24,8 +24,8 @@ from kivy.properties cimport Property, PropertyStorage, ObjectProperty, \
 
 cdef int widget_uid = 0
 cdef dict cache_properties = WeakKeyDictionary()
-cdef dict cache_events = {}
-cdef dict cache_events_handlers = {}
+cdef dict cache_events = WeakKeyDictionary()
+cdef dict cache_events_handlers = WeakKeyDictionary()
 
 def _get_bases(cls):
     for base in cls.__bases__:
