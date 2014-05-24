@@ -16,7 +16,7 @@ __all__ = ('EventDispatcher', )
 
 
 from functools import partial
-from weakref import WeakKeyDictionary
+from weakref import WeakKeyDictionary, WeakValueDictionary
 from kivy.weakmethod import WeakMethod
 from kivy.compat import string_types
 from kivy.properties cimport Property, PropertyStorage, ObjectProperty, \
@@ -66,7 +66,7 @@ cdef class EventDispatcher(ObjectWithUid):
         __cls__ = self.__class__
 
         if __cls__ not in cp:
-            attrs_found = cp[__cls__] = {}
+            attrs_found = cp[__cls__] = WeakValueDictionary()
             attrs = dir(__cls__)
             for k in attrs:
                 uattr = getattr(__cls__, k, None)
