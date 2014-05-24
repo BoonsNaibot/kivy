@@ -23,9 +23,9 @@ from kivy.properties cimport Property, PropertyStorage, ObjectProperty, \
     NumericProperty, StringProperty, ListProperty, DictProperty
 
 cdef int widget_uid = 0
-cdef dict cache_properties = WeakKeyDictionary()
-cdef dict cache_events = WeakKeyDictionary()
-cdef dict cache_events_handlers = WeakKeyDictionary()
+cdef object cache_properties = WeakKeyDictionary()
+cdef object cache_events = WeakKeyDictionary()
+cdef object cache_events_handlers = WeakKeyDictionary()
 
 def _get_bases(cls):
     for base in cls.__bases__:
@@ -54,8 +54,8 @@ cdef class EventDispatcher(ObjectWithUid):
 
     def __cinit__(self, *largs, **kwargs):
         global cache_properties
-        cdef dict cp = cache_properties
-        cdef dict attrs_found
+        cdef object cp = cache_properties
+        cdef object attrs_found
         cdef list attrs
         cdef Property attr
         cdef str k
@@ -94,7 +94,7 @@ cdef class EventDispatcher(ObjectWithUid):
         # self.register_event_type)
 
         # If not done yet, discover __events__ on all the baseclasses
-        cdef dict ce = cache_events
+        cdef object ce = cache_events
         cdef list events
         cdef str event
         if __cls__ not in ce:
@@ -383,9 +383,10 @@ cdef class EventDispatcher(ObjectWithUid):
         # fast path, use the cache first
         __cls__ = self.__class__
         if __cls__ in cache_properties:
-            return cache_properties[__cls__]
+            return dict(cache_properties[__cls__])
 
-        cdef dict ret, p
+        cdef dict ret
+        cdef object p
         ret = {}
         p = self.__properties
         for x in self.__storage:
@@ -440,5 +441,4 @@ cdef class EventDispatcher(ObjectWithUid):
         prop.link_deps(self, name)
         self.__properties[name] = prop
         setattr(self.__class__, name, prop)
-
 
