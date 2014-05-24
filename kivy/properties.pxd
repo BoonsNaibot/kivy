@@ -19,6 +19,7 @@ cdef class PropertyStorage:
     cdef int alias_initial
 
 cdef class Property:
+    cdef object __weakref__
     cdef str _name
     cdef int allownone
     cdef object errorvalue
