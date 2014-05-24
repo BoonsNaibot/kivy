@@ -16,13 +16,14 @@ __all__ = ('EventDispatcher', )
 
 
 from functools import partial
+from weakref import WeakKeyDictionary
 from kivy.weakmethod import WeakMethod
 from kivy.compat import string_types
 from kivy.properties cimport Property, PropertyStorage, ObjectProperty, \
     NumericProperty, StringProperty, ListProperty, DictProperty
 
 cdef int widget_uid = 0
-cdef dict cache_properties = {}
+cdef dict cache_properties = WeakKeyDictionary()
 cdef dict cache_events = {}
 cdef dict cache_events_handlers = {}
 
@@ -72,7 +73,7 @@ cdef class EventDispatcher(ObjectWithUid):
                 if not isinstance(uattr, Property):
                     continue
                 if k == 'touch_down' or k == 'touch_move' or k == 'touch_up':
-                    raise Exception('The property <%s> have a forbidden name' % k)
+                    raise Exception('The property {!s} have a forbidden name'.format(k))
                 attrs_found[k] = uattr
         else:
             attrs_found = cp[__cls__]
