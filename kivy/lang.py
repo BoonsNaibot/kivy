@@ -1408,7 +1408,7 @@ class BuilderBase(object):
     that you can use to load other kv files in addition to the default ones.
     '''
 
-    _cache_match = {}
+    _match_cache = WeakKeyDictionary()
 
     def __init__(self):
         super(BuilderBase, self).__init__()
@@ -1738,16 +1738,16 @@ class BuilderBase(object):
         '''Return a list of :class:`ParserRule` objects matching the widget.
         '''
         cache = BuilderBase._match_cache
-        k = (ref(widget.__class__), widget.id, tuple(widget.cls))
-        if k in cache:
-            return cache[k]
+        #k = (ref(widget.__class__), widget.id, tuple(widget.cls))
+        if widget in cache:
+            return cache[widget]
         rules = []
         for selector, rule in self.rules:
             if selector.match(widget):
                 if rule.avoid_previous_rules:
                     del rules[:]
                 rules.append(rule)
-        cache[k] = rules
+        cache[widget] = rules
         return rules
 
     def sync(self):
