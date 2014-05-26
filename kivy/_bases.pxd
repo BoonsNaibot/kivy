@@ -1,3 +1,4 @@
+from kivy.weakreflist cimport WeakList
 from kivy._event cimport EventDispatcher
 
 cdef extern from "Python.h":
