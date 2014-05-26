@@ -36,7 +36,7 @@ cdef class ExceptionManagerBase:
 
     def __cinit__(self):
         self.handlers = []
-        self.policy = self.RAISE
+        self.policy = ExceptionManagerBase.RAISE
 
     def add_handler(self, object cls):
         '''Add a new exception handler to the stack.'''
@@ -52,9 +52,10 @@ cdef class ExceptionManagerBase:
         '''Called when an exception occured in the runTouchApp() main loop.'''
         cdef bint r
         cdef bint ret = self.policy
+        cdef object handler
         for handler in self.handlers:
             r = handler.handle_exception(inst)
-            if r == self.PASS:
+            if r == ExceptionManagerBase.PASS:
                 ret = r
         return ret
 
@@ -77,103 +78,76 @@ cdef class EventLoopBase(EventDispatcher):
         self._window = None
         self.me_list = []
 
-    property touches:
-        def __get__(self):
-            '''Return the list of all touches currently in down or move states.
-            '''
-            return self.me_list
-            
-    property window:
-        def __get__(self):
-            return self._window
-        def __set__(self, object _window):
-            if _window is not None:
-                def _c(*args):
-                    self._window = None
-                _window = PyWeakref_NewProxy(_window, _c)
+    cdef bint _idle(self):
+        '''This function is called after every frame. By default:
 
-            self._window = _window
-
-    def ensure_window(self):
-        '''Ensure that we have a window.
+           * it "ticks" the clock to the next frame.
+           * it reads all input and dispatches events.
+           * it dispatches `on_update`, `on_draw` and `on_flip` events to the
+             window.
         '''
-        import kivy.core.window  # NOQA
-        if not self.window:
-            Logger.critical('App: Unable to get a Window, abort.')
-            sys.exit(1)
 
-    cpdef add_input_provider(self, object provider, bint auto_remove=0):
-        '''Add a new input provider to listen for touch events.
-        '''
-        if provider not in self.input_providers:
-            self.input_providers.append(provider)
-            if auto_remove:
-                self.input_providers_autoremove.append(provider)
+        # update dt
+        Clock.tick()
 
-    cpdef remove_input_provider(self, object provider):
-        '''Remove an input provider.
-        '''
-        if provider in self.input_providers:
-            self.input_providers.remove(provider)
+        # read and dispatch input from providers
+        self.dispatch_input()
 
-    cpdef add_event_listener(self, object listener):
-        '''Add a new event listener for getting touch events.
-        '''
-        if not listener in self.event_listeners:
-            self.event_listeners.append(listener)
+        # flush all the canvas operation
+        Builder.sync()
 
-    cpdef remove_event_listener(self, object listener):
-        '''Remove an event listener from the list.
-        '''
-        if listener in self.event_listeners:
-            self.event_listeners.remove(listener)
+        # tick before draw
+        Clock.tick_draw()
 
-    cpdef start(self):
-        '''Must be called only once before run().
-        This starts all configured input providers.'''
-        self.status = 'started'
-        self.quit = False
-        for provider in self.input_providers:
-            provider.start()
-        self.dispatch('on_start')
+        # flush all the canvas operation
+        Builder.sync()
 
-    cpdef close(self):
-        '''Exit from the main loop and stop all configured
-        input providers.'''
-        self.quit = True
-        self.stop()
-        self.status = 'closed'
+        cdef object window = self.window
+        if window and window.canvas.needs_redraw:
+            window.dispatch('on_draw')
+            window.dispatch('on_flip')
 
-    def stop(self):
-        '''Stop all input providers and call callbacks registered using
-        EventLoop.add_stop_callback().'''
+        # don't loop if we don't have listeners !
+        if len(self.event_listeners) == 0:
+            Logger.error('Base: No event listeners have been created')
+            Logger.error('Base: Application will leave')
+            self.exit()
+            return False
 
-        # XXX stop in reverse order that we started them!! (like push
-        # pop), very important because e.g. wm_touch and WM_PEN both
-        # store old window proc and the restore, if order is messed big
-        # problem happens, crashing badly without error
-        for provider in reversed(self.input_providers[:]):
-            provider.stop()
-            if provider in self.input_providers_autoremove:
-                self.input_providers_autoremove.remove(provider)
-                self.input_providers.remove(provider)
+        return self.quit
 
-        # ensure any restart will not break anything later.
-        self.input_events = []
-
-        self.status = 'stopped'
-        self.dispatch('on_stop')
-
-    cpdef add_postproc_module(self, object mod):
+    cdef add_postproc_module(self, object mod):
         '''Add a postproc input module (DoubleTap, TripleTap, DeJitter
         RetainTouch are defaults).'''
         if mod not in self.postproc_modules:
             self.postproc_modules.append(mod)
 
-    cpdef remove_postproc_module(self, object mod):
-        '''Remove a postproc module.'''
-        if mod in self.postproc_modules:
-            self.postproc_modules.remove(mod)
+    cdef dispatch_input(self):
+        '''Called by idle() to read events from input providers, pass events to
+        postproc, and dispatch final events.
+        '''
+
+        # first, aquire input events
+        cdef object provider
+        for provider in self.input_providers:
+            provider.update(dispatch_fn=self._dispatch_input)
+
+        # execute post-processing modules
+        for mod in self.postproc_modules:
+            self.input_events = mod.process(events=self.input_events)
+
+        # real dispatch input
+        cdef list input_events = self.input_events
+        cdef object pop = input_events.pop
+        cdef object post_dispatch_input = self.post_dispatch_input
+        while input_events:
+            post_dispatch_input(*pop(0))
+
+    cdef exit(self):
+        '''Close the main loop and close the window.'''
+        self.close()
+        if self.window is not None:
+            self.window.close()
 
     cdef post_dispatch_input(self, str etype, object me):
         '''This function is called by dispatch_input() when we want to dispatch
@@ -255,81 +229,96 @@ cdef class EventLoopBase(EventDispatcher):
                 me.pop()
         me.grab_state = False
 
+    cdef remove_postproc_module(self, object mod):
+        '''Remove a postproc module.'''
+        if mod in self.postproc_modules:
+            self.postproc_modules.remove(mod)
+
+    cdef stop(self):
+        '''Stop all input providers and call callbacks registered using
+        EventLoop.add_stop_callback().'''
+
+        # XXX stop in reverse order that we started them!! (like push
+        # pop), very important because e.g. wm_touch and WM_PEN both
+        # store old window proc and the restore, if order is messed big
+        # problem happens, crashing badly without error
+        cdef object provider
+        for provider in reversed(self.input_providers[:]):
+            provider.stop()
+            if provider in self.input_providers_autoremove:
+                self.input_providers_autoremove.remove(provider)
+                self.input_providers.remove(provider)
+
+        # ensure any restart will not break anything later.
+        self.input_events = []
+
+        self.status = 'stopped'
+        self.dispatch('on_stop')
+
+    cpdef add_event_listener(self, object listener):
+        '''Add a new event listener for getting touch events.
+        '''
+        if not listener in self.event_listeners:
+            self.event_listeners.append(listener)
+
+    cpdef add_input_provider(self, object provider, bint auto_remove=0):
+        '''Add a new input provider to listen for touch events.
+        '''
+        if provider not in self.input_providers:
+            self.input_providers.append(provider)
+            if auto_remove:
+                self.input_providers_autoremove.append(provider)
+
+    cpdef close(self):
+        '''Exit from the main loop and stop all configured
+        input providers.'''
+        self.quit = True
+        self.stop()
+        self.status = 'closed'
+
+    cpdef remove_event_listener(self, object listener):
+        '''Remove an event listener from the list.
+        '''
+        if listener in self.event_listeners:
+            self.event_listeners.remove(listener)
+
+    cpdef remove_input_provider(self, object provider):
+        '''Remove an input provider.
+        '''
+        if provider in self.input_providers:
+            self.input_providers.remove(provider)
+
+    cpdef run(self):
+        '''Main loop'''
+        while not self.quit:
+            self._idle()
+        self.exit()
+
+    cpdef start(self):
+        '''Must be called only once before run().
+        This starts all configured input providers.'''
+        self.status = 'started'
+        self.quit = False
+        for provider in self.input_providers:
+            provider.start()
+        self.dispatch('on_start')
+
     def _dispatch_input(self, *ev):
         # remove the save event for the touch if exist
         if ev in self.input_events:
             self.input_events.remove(ev)
         self.input_events.append(ev)
 
-    cdef dispatch_input(self):
-        '''Called by idle() to read events from input providers, pass events to
-        postproc, and dispatch final events.
+    def ensure_window(self):
+        '''Ensure that we have a window.
         '''
+        import kivy.core.window  # NOQA
+        if not self.window:
+            Logger.critical('App: Unable to get a Window, abort.')
+            sys.exit(1)
 
-        # first, aquire input events
-        for provider in self.input_providers:
-            provider.update(dispatch_fn=self._dispatch_input)
-
-        # execute post-processing modules
-        for mod in self.postproc_modules:
-            self.input_events = mod.process(events=self.input_events)
-
-        # real dispatch input
-        input_events = self.input_events
-        pop = input_events.pop
-        post_dispatch_input = self.post_dispatch_input
-        while input_events:
-            post_dispatch_input(*pop(0))
-
-    cpdef bint idle(self):
-        '''This function is called after every frame. By default:
-
-           * it "ticks" the clock to the next frame.
-           * it reads all input and dispatches events.
-           * it dispatches `on_update`, `on_draw` and `on_flip` events to the
-             window.
-        '''
-
-        # update dt
-        Clock.tick()
-
-        # read and dispatch input from providers
-        self.dispatch_input()
-
-        # flush all the canvas operation
-        Builder.sync()
-
-        # tick before draw
-        Clock.tick_draw()
-
-        # flush all the canvas operation
-        Builder.sync()
-
-        window = self.window
-        if window and window.canvas.needs_redraw:
-            window.dispatch('on_draw')
-            window.dispatch('on_flip')
-
-        # don't loop if we don't have listeners !
-        if len(self.event_listeners) == 0:
-            Logger.error('Base: No event listeners have been created')
-            Logger.error('Base: Application will leave')
-            self.exit()
-            return False
-
-        return self.quit
-
-    cpdef run(self):
-        '''Main loop'''
-        while not self.quit:
-            self.idle()
-        self.exit()
-
-    cdef exit(self):
-        '''Close the main loop and close the window.'''
-        self.close()
-        if self.window is not None:
-            self.window.close()
+    def idle(self):
+        self._idle()
 
     def on_stop(self):
         '''Event handler for `on_stop` events which will be fired right
@@ -345,4 +334,21 @@ cdef class EventLoopBase(EventDispatcher):
         '''Event handler for `on_start` which will be fired right
         after all input providers have been started.'''
         pass
+
+    property touches:
+        def __get__(self):
+            '''Return the list of all touches currently in down or move states.
+            '''
+            return self.me_list
+            
+    property window:
+        def __get__(self):
+            return self._window
+        def __set__(self, object _window):
+            if _window is not None:
+                def _c(*args):
+                    self._window = None
+                _window = PyWeakref_NewProxy(_window, _c)
+
+            self._window = _window
 
