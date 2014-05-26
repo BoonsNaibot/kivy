@@ -6,3 +6,4 @@ cdef extern from "Python.h":
 cdef class WeakMethod(object):
     cdef object _obj
     cdef str _func
+    cdef object _get_object(self, object x)
