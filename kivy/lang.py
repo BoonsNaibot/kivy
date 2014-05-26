@@ -689,7 +689,7 @@ from kivy.weakreflist import WeakList
 
 
 trace = Logger.trace
-global_idmap = WeakValueDictionary()
+global_idmap = {}
 
 # late import
 Instruction = None
@@ -715,7 +715,7 @@ class ProxyApp(object):
     # proxy app object
     # taken from http://code.activestate.com/recipes/496741-object-proxying/
 
-    __slots__ = ['_obj']
+    __slots__ = ['_obj', '__weakref__']
 
     def __init__(self):
         object.__init__(self)
@@ -756,8 +756,8 @@ class ProxyApp(object):
         object.__getattribute__(self, '_ensure_app')()
         return repr(object.__getattribute__(self, '_obj'))
 
-
-global_idmap['app'] = ProxyApp()
+proxy_app = ProxyApp()
+global_idmap['app'] = proxy_app#ProxyApp()
 global_idmap['pt'] = Metrics.pt
 global_idmap['inch'] = Metrics.inch
 global_idmap['cm'] = Metrics.cm
@@ -1568,7 +1568,7 @@ class BuilderBase(object):
             self._apply_rule(widget, rule, rule)
 
     def _clear_matchcache(self):
-        BuilderBase._match_cache = {}
+        BuilderBase._match_cache = WeakKeyDictionary()
 
     def _apply_rule(self, widget, rule, rootrule, template_ctx=None):
         # widget: the current instanciated widget
@@ -1578,7 +1578,7 @@ class BuilderBase(object):
         # will collect reference to all the id in children
         assert(rule not in self.rulectx)
         self.rulectx[rule] = rctx = {
-            'ids': {'root': widget.proxy_ref},
+            'ids': {'root': widget.proxy_ref},#WeakValueDictionary({'root': widget}),
             'set': [], 'hdl': []}
 
         # extract the context of the rootrule (not rule!)
@@ -1596,7 +1596,7 @@ class BuilderBase(object):
             rctx['ids'][rule.id] = widget.proxy_ref
             # set id name as a attribute for root widget so one can in python
             # code simply access root_widget.id_name
-            _ids = dict(rctx['ids'])
+            _ids = dict(rctx['ids'])#WeakValueDict(rctx['ids'])
             _root = _ids.pop('root')
             _new_ids = _root.ids
             for _key in iterkeys(_ids):
