@@ -17,17 +17,15 @@ cdef class WeakMethod(object):
             self._func = method.__name__
         except AttributeError:
             # not a method
-            self._obj = PyWeakref_NewRef(method, None)
+            self._obj = method
             self._func = None
 
     def __call__(self):
-        cdef object obj = self._get_object(self._obj)
-
         if self._func is not None:
-            return getattr(obj, self._func)
+            return getattr(self._get_object(self._obj), self._func)
         else:
             # we don't have an instance: return just the function
-            return obj
+            return self._obj
 
     def __richcmp__(self, object other, int op):
         if op == 2:
@@ -42,4 +40,7 @@ cdef class WeakMethod(object):
         '''Returns True if the referenced callable was a bound method and
         the instance no longer exists. Otherwise, return False.
         '''
-        return self._get_object(self._obj) is None
+        if self._func is not None:
+            return self._get_object(self._obj) is None
+        else:
+            return self._obj is None
