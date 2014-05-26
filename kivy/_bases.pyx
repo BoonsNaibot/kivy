@@ -3,31 +3,6 @@ from kivy.logger import Logger
 from kivy.clock import Clock
 from kivy.lang import Builder
 
-
-cdef class ExceptionHandler(object):
-    '''Base handler that catches exceptions in :func:`runTouchApp`.
-    You can subclass and extend it as follows::
-
-        class E(ExceptionHandler):
-            def handle_exception(self, inst):
-                Logger.exception('Exception catched by ExceptionHandler')
-                return ExceptionManager.PASS
-
-        ExceptionManager.add_handler(E())
-
-    All exceptions will be set to PASS, and logged to the console!
-    '''
-
-    def __init__(self):
-        pass
-
-    def handle_exception(self, object exception):
-        '''Handle one exception, defaults to returning
-        ExceptionManager.STOP.
-        '''
-        return ExceptionManager.RAISE
-
-
 cdef class ExceptionManagerBase:
     '''ExceptionManager manages exceptions handlers.'''
 
@@ -137,11 +112,14 @@ cdef class EventLoopBase(EventDispatcher):
             self.input_events = mod.process(events=self.input_events)
 
         # real dispatch input
+        cdef int i
+        cdef list pop
         cdef list input_events = self.input_events
-        cdef object pop = input_events.pop
-        cdef object post_dispatch_input = self.post_dispatch_input
-        while input_events:
-            post_dispatch_input(*pop(0))
+        cdef int l = len(input_events)
+        #post_dispatch_input = self.post_dispatch_input
+        for i in xrange(l):
+            pop = input_events.pop(0)
+            self.post_dispatch_input(pop[0], pop[1])
 
     cdef exit(self):
         '''Close the main loop and close the window.'''
@@ -351,4 +329,3 @@ cdef class EventLoopBase(EventDispatcher):
                 _window = PyWeakref_NewProxy(_window, _c)
 
             self._window = _window
-
