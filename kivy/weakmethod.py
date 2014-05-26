@@ -1,114 +1,45 @@
-'''
-Weak Method
-===========
+cdef class WeakMethod(object):
+    __slots__ = ('_obj', '_func')
+    
+    cdef object _get_object(self, object x):
+        x = PyWeakref_GetObject(x)
+        Py_XINCREF(x)
+        return x
 
-The :class:`WeakMethod` is used in the Clock class to allow a reference
-to a bound method that permits the associated object to be garbage collected.
-Check examples/core/clock_method.py for more information.
+    def __cinit__(self, object method):
+        try:
+            if method.__self__ is not None:
+                # bound method
+                self._obj = PyWeakref_NewRef(method.im_self, None)
+            else:
+                # unbound method
+                self._obj = PyWeakref_NewRef(method.im_class, None)
+            self._func = method.__name__
+        except AttributeError:
+            # not a method
+            self._obj = PyWeakref_NewRef(method, None)
+            self._func = None
 
-This WeakMethod class is taken from the recipe
-http://code.activestate.com/recipes/81253/, based on the nicodemus version.
-(thanks to him !)
-'''
+    def __call__(self):
+        cdef object obj = self._get_object(self._obj)
 
-import weakref
-import sys
+        if self._func is not None:
+            return getattr(obj, self._func)
+        else:
+            # we don't have an instance: return just the function
+            return obj
 
-if sys.version > '3':
-
-    class WeakMethod:
-        '''Implementation of a
-        `weakref <http://en.wikipedia.org/wiki/Weak_reference>`_
-        for functions and bound methods.
-        '''
-        def __init__(self, method):
-            self.method = None
-            self.method_name = None
-            try:
-                if method.__self__ is not None:
-                    self.method_name = method.__func__.__name__
-                    self.proxy = weakref.proxy(method.__self__)
-                else:
-                    self.method = method
-                    self.proxy = None
-            except AttributeError:
-                self.method = method
-                self.proxy = None
-
-        def __call__(self):
-            '''Return a new bound-method like the original, or the
-            original function if it was just a function or unbound
-            method.
-            Returns None if the original object doesn't exist.
-            '''
-            try:
-                if self.proxy:
-                    return getattr(self.proxy, self.method_name)
-            except ReferenceError:
-                pass
-            return self.method
-
-        def is_dead(self):
-            '''Returns True if the referenced callable was a bound method and
-            the instance no longer exists. Otherwise, return False.
-            '''
-            return self.proxy is not None and not bool(dir(self.proxy))
-
-        def __repr__(self):
-            return '<WeakMethod proxy={} method={} method_name={}>'.format(
-                   self.proxy, self.method, self.method_name)
-
-else:
-
-    import new
-
-    class WeakMethod(object):
-        '''Implementation of a
-        `weakref <http://en.wikipedia.org/wiki/Weak_reference>`_
-        for functions and bound methods.
-        '''
-        _obj = lambda *_: None
-
-        def __init__(self, method):
-            try:
-                if method.__self__ is not None:
-                    # bound method
-                    self._obj = weakref.ref(method.im_self)
-                else:
-                    # unbound method
-                    self._obj = weakref.ref(method.im_class)
-                self._func = method.__name__
-            except AttributeError:
-                # not a method
-                #self._obj = None
-                self._func = method
-                #self._class = None
-
-        def __call__(self):
-            '''Return a new bound-method like the original, or the
-            original function if it was just a function or unbound
-            method.
-            Returns None if the original object doesn't exist.
-            ''
-            if self.is_dead():
-                return None'''
-            if self._obj() is not None:
-                return getattr(self._obj(), self._func)
-            elif type(self._func) is not str:
-                # we don't have an instance: return just the function
-                return self._func
-
-        def __eq__(self, other):
+    def __richcmp__(self, object other, int op):
+        if op == 2:
             try:
                 return type(self) is type(other) and self() == other()
             except:
                 return False
-
-        def __ne__(self, other):
+        elif op == 3:
             return not self == other
 
-        def is_dead(self):
-            '''Returns True if the referenced callable was a bound method and
-            the instance no longer exists. Otherwise, return False.
-            '''
-            return self._obj is not None and self._obj() is None
+    def is_dead(self):
+        '''Returns True if the referenced callable was a bound method and
+        the instance no longer exists. Otherwise, return False.
+        '''
+        return self._get_object(self._obj) is None
