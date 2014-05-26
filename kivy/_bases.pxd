@@ -10,8 +10,6 @@ cdef class ExceptionHandler(object):
     
 
 cdef class ExceptionManagerBase:
-    cdef bint RAISE
-    cdef bint PASS
     cdef list handlers
     cdef bint policy
     
