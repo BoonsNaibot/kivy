@@ -15,7 +15,7 @@ cdef class ExceptionManagerBase:
     
     
 cdef class EventLoopBase(EventDispatcher):
-    cdef bint quit
+    cdef public bint quit
     cdef list input_events
     cdef list postproc_modules
     cdef readonly str status
@@ -25,7 +25,6 @@ cdef class EventLoopBase(EventDispatcher):
     cdef object _window
     cdef list me_list
     cdef bint _idle(self)
-    cdef add_postproc_module(self, object mod)
     cdef dispatch_input(self)
     cdef exit(self)
     cdef post_dispatch_input(self, str etype, object me)
@@ -33,6 +32,7 @@ cdef class EventLoopBase(EventDispatcher):
     cdef stop(self)
     cpdef add_event_listener(self, object listener)
     cpdef add_input_provider(self, provider, bint auto_remove=*)
+    cpdef add_postproc_module(self, object mod)
     cpdef close(self)
     cpdef remove_event_listener(self, object listener)
     cpdef remove_input_provider(self, object provider)
