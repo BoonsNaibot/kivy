@@ -11,7 +11,9 @@ cdef extern from "object.h":
 cdef class WidgetMetaclass(type):
     pass
 
-cdef class WidgetBase(WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__metaclass__': WidgetMetaclass})):
+cdef EventDispatcher WidgetBase
+
+cdef class Widget(WidgetBase):
     cdef object _canvas
     cdef public object _context
     cdef object _proxy_ref
@@ -29,7 +31,3 @@ cdef class WidgetBase(WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__met
     cpdef tuple to_parent(self, float x, float y, bint relative=*)
     cpdef tuple to_widget(self, float x, float y, bint relative=*)
     cpdef tuple to_window(self, float x, float y, bint initial=*, bint relative=*)
-
-
-cdef class Widget(WidgetBase):
-    pass
