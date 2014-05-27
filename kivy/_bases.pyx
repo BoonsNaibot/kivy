@@ -91,12 +91,6 @@ cdef class EventLoopBase(EventDispatcher):
 
         return self.quit
 
-    cpdef add_postproc_module(self, object mod):
-        '''Add a postproc input module (DoubleTap, TripleTap, DeJitter
-        RetainTouch are defaults).'''
-        if mod not in self.postproc_modules:
-            self.postproc_modules.append(mod)
-
     cdef dispatch_input(self):
         '''Called by idle() to read events from input providers, pass events to
         postproc, and dispatch final events.
@@ -113,7 +107,7 @@ cdef class EventLoopBase(EventDispatcher):
 
         # real dispatch input
         cdef int i
-        cdef list pop
+        cdef tuple pop
         cdef list input_events = self.input_events
         cdef int l = len(input_events)
         #post_dispatch_input = self.post_dispatch_input
@@ -246,6 +240,12 @@ cdef class EventLoopBase(EventDispatcher):
             self.input_providers.append(provider)
             if auto_remove:
                 self.input_providers_autoremove.append(provider)
+
+    cpdef add_postproc_module(self, object mod):
+        '''Add a postproc input module (DoubleTap, TripleTap, DeJitter
+        RetainTouch are defaults).'''
+        if mod not in self.postproc_modules:
+            self.postproc_modules.append(mod)
 
     cpdef close(self):
         '''Exit from the main loop and stop all configured
