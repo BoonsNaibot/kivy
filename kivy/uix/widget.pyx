@@ -59,8 +59,7 @@ cdef class WidgetMetaclass(type):
         super(WidgetMetaclass, mcs).__init__(name, bases, attrs)
         Factory.register(name, cls=mcs)
 
-cdef class WidgetBase(WidgetMetaclass('WidgetBase', (EventDispatcher, ), {})):
-    __metaclass__ = WidgetMetaclass
+cdef class WidgetBase(WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__metaclass__': WidgetMetaclass})):
     __events__ = ('on_touch_down', 'on_touch_move', 'on_touch_up')
     
     def __cinit__(self, *args, **kwargs):
