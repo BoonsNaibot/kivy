@@ -18,28 +18,28 @@ cpdef _widget_destructor(int uid, object r):
     del _widget_destructors[uid]
     Builder.unbind_widget(uid)
 
-cpdef float get_right(object self):
+cpdef float get_right(WidgetBase self):
     return self.x + self.width
 
-cpdef set_right(object self, float value):
+cpdef set_right(WidgetBase self, float value):
     self.x = value - self.width
 
-cpdef float get_top(object self):
+cpdef float get_top(WidgetBase self):
     return self.y + self.height
 
-cpdef set_top(object self, float value):
+cpdef set_top(WidgetBase self, float value):
     self.y = value - self.height
 
-cpdef float get_center_x(object self):
+cpdef float get_center_x(WidgetBase self):
     return self.x + self.width / 2.
 
-cpdef set_center_x(object self, float value):
+cpdef set_center_x(WidgetBase self, float value):
     self.x = value - self.width / 2.
 
-cpdef float get_center_y(object self):
+cpdef float get_center_y(WidgetBase self):
     return self.y + self.height / 2.
 
-cpdef set_center_y(object self, float value):
+cpdef set_center_y(WidgetBase self, float value):
     self.y = value - self.height / 2.
 
 
@@ -64,7 +64,7 @@ WidgetBase = WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__metaclass__'
 cdef class Widget(WidgetBase):
     __events__ = ('on_touch_down', 'on_touch_move', 'on_touch_up')
     
-    def __cinit__(self, *args, **kwargs):
+    def __cinit__(self, **kwargs):
         self._canvas = None
         self._proxy_ref = None
         #Factory.register(self.__class__.__name__, cls=self)
@@ -92,7 +92,7 @@ cdef class Widget(WidgetBase):
             if argument[:3] == 'on_':
                 self.bind(**{argument: kwargs[argument]})
 
-    cpdef add_widget(self, object widget, int index=0):
+    cpdef add_widget(self, WidgetBase widget, int index=0):
         if not isinstance(widget, Widget):
             raise WidgetException('add_widget() can be used only with Widget classes.')
 
@@ -141,7 +141,7 @@ cdef class Widget(WidgetBase):
     cpdef bint collide_point(self, float x, float y):
         return self.x <= x <= self.right and self.y <= y <= self.top
 
-    cpdef bint collide_widget(self, object wid):
+    cpdef bint collide_widget(self, WidgetBase wid):
         if self.right < wid.x:
             return False
         if self.x > wid.right:
@@ -187,7 +187,7 @@ cdef class Widget(WidgetBase):
         else:
             return False
 
-    cpdef remove_widget(self, object widget):
+    cpdef remove_widget(self, WidgetBase widget):
         if widget in self.children:
             self.children.remove(widget)
             self.canvas.remove(widget.canvas)
