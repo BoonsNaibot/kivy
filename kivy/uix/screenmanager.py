@@ -150,7 +150,7 @@ from kivy.event import EventDispatcher
 from kivy.uix.stencilview import StencilLayout
 from kivy.properties import (StringProperty, ObjectProperty, AliasProperty,
                              NumericProperty, ListProperty, OptionProperty,
-                             BooleanProperty)
+                             BooleanProperty, WeakListProperty)
 from kivy.animation import Animation, AnimationTransition
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.lang import Builder
@@ -712,6 +712,7 @@ class RiseInTransition(ShaderTransition):
 
 
 class ScreenManager(StencilLayout):
+    children = WeakListProperty([])
     '''Screen manager. This is the main class that will control your
     :class:`Screen` stack and memory.
 
