@@ -59,13 +59,38 @@ cdef class WidgetMetaclass(type):
         super(WidgetMetaclass, mcs).__init__(name, bases, attrs)
         Factory.register(name, cls=mcs)
 
-cdef class WidgetBase(WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__metaclass__': WidgetMetaclass})):
+WidgetBase = WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__metaclass__': WidgetMetaclass})):
+
+cdef class Widget(WidgetBase):
     __events__ = ('on_touch_down', 'on_touch_move', 'on_touch_up')
     
     def __cinit__(self, *args, **kwargs):
         self._canvas = None
         self._proxy_ref = None
         #Factory.register(self.__class__.__name__, cls=self)
+
+    def __init__(self, **kwargs):
+        # Before doing anything, ensure the windows exist.
+        EventLoop.ensure_window()
+
+        # assign the default context of the widget creation
+        if self._context is None:
+            self._context = get_current_context()
+
+        super(Widget, self).__init__(**kwargs)
+
+        # Create the default canvas if not exist
+        if self.canvas is None:
+            self.canvas = Canvas(opacity=self.opacity)
+
+        # Apply all the styles
+        if '__no_builder' not in kwargs:
+            Builder.apply(self)
+
+        # Bind all the events
+        for argument in kwargs:
+            if argument[:3] == 'on_':
+                self.bind(**{argument: kwargs[argument]})
 
     cpdef add_widget(self, object widget, int index=0):
         if not isinstance(widget, Widget):
@@ -255,29 +280,3 @@ cdef class WidgetBase(WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__met
     ids = DictProperty({})
     opacity = NumericProperty(1.0)
     disabled = BooleanProperty(False)
-
-
-cdef class Widget(WidgetBase):
-
-    def __init__(self, **kwargs):
-        # Before doing anything, ensure the windows exist.
-        EventLoop.ensure_window()
-
-        # assign the default context of the widget creation
-        if self._context is None:
-            self._context = get_current_context()
-
-        super(Widget, self).__init__(**kwargs)
-
-        # Create the default canvas if not exist
-        if self.canvas is None:
-            self.canvas = Canvas(opacity=self.opacity)
-
-        # Apply all the styles
-        if '__no_builder' not in kwargs:
-            Builder.apply(self)
-
-        # Bind all the events
-        for argument in kwargs:
-            if argument[:3] == 'on_':
-                self.bind(**{argument: kwargs[argument]})
