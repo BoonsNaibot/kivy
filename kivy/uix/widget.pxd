@@ -8,7 +8,7 @@ cdef extern from "object.h":
     ctypedef class __builtin__.type [object PyHeapTypeObject]:
         pass
         
-ctypedef class WidgetMetaclass(type):
+cdef class WidgetMetaclass(type):
     pass
 
 cdef class WidgetBase(WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__metaclass__': WidgetMetaclass})):
