@@ -4,7 +4,14 @@ from kivy.properties cimport AliasProperty, BooleanProperty, DictProperty, ListP
 cdef extern from "Python.h":
     object PyWeakref_NewProxy(object ob, object callback)
 
-cdef class WidgetBase(EventDispatcher):
+cdef extern from "object.h": 
+    ctypedef class __builtin__.type [object PyHeapTypeObject]: 
+        pass
+        
+cdef class WidgetMetaclass(type):
+    pass
+
+cdef class WidgetBase(WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__metaclass__': WidgetMetaclass})):
     cdef object _canvas
     cdef public object _context
     cdef object _proxy_ref
