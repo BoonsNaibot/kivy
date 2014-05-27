@@ -59,7 +59,7 @@ cdef class WidgetMetaclass(type):
         super(WidgetMetaclass, mcs).__init__(name, bases, attrs)
         Factory.register(name, cls=mcs)
 
-WidgetBase = WidgetMetaclass('WidgetBase', (EventDispatcher, ), {'__metaclass__': WidgetMetaclass})
+WidgetBase = WidgetMetaclass('WidgetBase', (EventDispatcher, ), {})
 
 cdef class Widget(WidgetBase):
     __events__ = ('on_touch_down', 'on_touch_move', 'on_touch_up')
@@ -67,7 +67,6 @@ cdef class Widget(WidgetBase):
     def __cinit__(self, **kwargs):
         self._canvas = None
         self._proxy_ref = None
-        #Factory.register(self.__class__.__name__, cls=self)
 
     def __init__(self, **kwargs):
         # Before doing anything, ensure the windows exist.
@@ -103,6 +102,7 @@ cdef class Widget(WidgetBase):
         # check if widget is already a child of another widget
         if widget.parent:
             raise WidgetException('Cannot add {!r}, it already has a parent {!r}'.format(widget, widget.parent))
+        cdef object parent
         widget.parent = parent = self.proxy_ref
         # child will be disabled if added to a disabled parent
         if parent.disabled:
@@ -134,6 +134,7 @@ cdef class Widget(WidgetBase):
     cpdef clear_widgets(self, list children=None):
         if not children:
             children = self.children
+        cdef WidgetBase child
         remove_widget = self.remove_widget
         for child in children[:]:
             remove_widget(child)
@@ -163,6 +164,7 @@ cdef class Widget(WidgetBase):
     cpdef bint on_touch_down(self, object touch):
         if self.disabled and self.collide_point(*touch.pos):
             return True
+        cdef WidgetBase child
         for child in self.children[:]:
             if child.dispatch('on_touch_down', touch):
                 return True
@@ -171,7 +173,8 @@ cdef class Widget(WidgetBase):
 
     cpdef bint on_touch_move(self, object touch):
         if self.disabled:
-            return False
+            return 
+        cdef WidgetBase child
         for child in self.children[:]:
             if child.dispatch('on_touch_move', touch):
                 return True
@@ -181,6 +184,7 @@ cdef class Widget(WidgetBase):
     cpdef bint on_touch_up(self, object touch):
         if self.disabled:
             return False
+        cdef WidgetBase child
         for child in self.children[:]:
             if child.dispatch('on_touch_up', touch):
                 return True
@@ -225,6 +229,7 @@ cdef class Widget(WidgetBase):
             return self.proxy_ref is other.proxy_ref
 
     def on_disabled(self, instance, value):
+        cdef WidgetBase child
         for child in self.children:
             child.disabled = value
 
@@ -241,7 +246,7 @@ cdef class Widget(WidgetBase):
         def __get__(self):
             return self._canvas
         
-        def __set__(self, _canvas):
+        def __set__(self, object _canvas):
             self._canvas = _canvas
 
     property proxy_ref:
