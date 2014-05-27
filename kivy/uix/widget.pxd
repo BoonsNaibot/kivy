@@ -11,8 +11,7 @@ cdef extern from "object.h":
 cdef class WidgetMetaclass(type):
     pass
 
-cdef class WidgetBase:
-    pass
+cdef class WidgetBase
 
 cdef class Widget(WidgetBase):
     cdef object _canvas
