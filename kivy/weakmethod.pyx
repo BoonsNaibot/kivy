@@ -1,10 +1,5 @@
 cdef class WeakMethod(object):
     __slots__ = ('_obj', '_func')
-    
-    cdef object _get_object(self, object x):
-        x = PyWeakref_GetObject(x)
-        Py_XINCREF(x)
-        return x
 
     def __cinit__(self, object method):
         try:
@@ -19,6 +14,11 @@ cdef class WeakMethod(object):
             # not a method
             self._obj = method
             self._func = None
+    
+    cdef object _get_object(self, object x):
+        x = PyWeakref_GetObject(x)
+        Py_XINCREF(x)
+        return x
 
     def __call__(self):
         if self._func is not None:
