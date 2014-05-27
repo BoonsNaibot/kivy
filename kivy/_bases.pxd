@@ -3,11 +3,6 @@ from kivy._event cimport EventDispatcher
 
 cdef extern from "Python.h":
     object PyWeakref_NewProxy(object ob, object callback)
-    
-
-cdef class ExceptionHandler(object):
-    pass
-    
 
 cdef class ExceptionManagerBase:
     cdef list handlers
