@@ -48,15 +48,25 @@ class WidgetException(Exception):
     '''
     pass
 
+cdef class WidgetMetaclass(type):
+    '''Metaclass to automatically register new widgets for the
+    :class:`~kivy.factory.Factory`
 
-cdef class WidgetBase(EventDispatcher):
+    .. warning::
+        This metaclass is used by the Widget. Do not use it directly !
+    '''
+    def __init__(mcs, name, bases, attrs): # `__cinit__`?
+        super(WidgetMetaclass, mcs).__init__(name, bases, attrs)
+        Factory.register(name, cls=mcs)
 
+cdef class WidgetBase(WidgetMetaclass('WidgetBase', (EventDispatcher, ), {})):
+    __metaclass__ = WidgetMetaclass
     __events__ = ('on_touch_down', 'on_touch_move', 'on_touch_up')
     
     def __cinit__(self, *args, **kwargs):
         self._canvas = None
         self._proxy_ref = None
-        Factory.register(self.__class__.__name__, cls=self)
+        #Factory.register(self.__class__.__name__, cls=self)
 
     cpdef add_widget(self, object widget, int index=0):
         if not isinstance(widget, Widget):
