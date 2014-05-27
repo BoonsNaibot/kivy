@@ -91,7 +91,7 @@ cdef class EventLoopBase(EventDispatcher):
 
         return self.quit
 
-    cdef add_postproc_module(self, object mod):
+    cpdef add_postproc_module(self, object mod):
         '''Add a postproc input module (DoubleTap, TripleTap, DeJitter
         RetainTouch are defaults).'''
         if mod not in self.postproc_modules:
