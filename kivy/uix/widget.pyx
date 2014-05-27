@@ -48,7 +48,7 @@ class WidgetException(Exception):
     '''
     pass
 
-cdef class WidgetMetaclass(type):
+ctypedef class WidgetMetaclass(type):
     '''Metaclass to automatically register new widgets for the
     :class:`~kivy.factory.Factory`
 
