@@ -1072,6 +1072,7 @@ cdef class BuilderBase(object):
     cdef _build_canvas(self, object canvas, object widget, object rule, object rootrule):
         global Instruction
         idmap = copy(self.rulectx[rootrule]['ids'])
+        cdef char *name
         for crule in rule.children:
             name = crule.name
             if name == 'Clear':
