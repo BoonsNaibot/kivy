@@ -7,12 +7,7 @@ class FactoryException(Exception):
     pass
 
 cdef class Machine:
-    cdef readonly object cls
-    cdef readonly str module
-    cdef readonly bint is_template
-    cdef readonly str baseclasses
-    cdef readonly str filename
-    
+
     __slots__ = ('cls', 'module', 'is_template', 'baseclasses', 'filename')
 
     def __cinit__(self, cls, module, is_template, baseclasses, filename):
