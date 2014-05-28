@@ -530,6 +530,8 @@ cdef class Parser(object):
         cdef object current_property = None
         cdef object current_propobject = None
         cdef int i = 0
+        cdef list x
+        cdef char *name
 
         while i < len(lines):
             line = lines[i]
@@ -726,6 +728,7 @@ def create_handler(iself, element, key, value, rule, idmap, delayed=False):
 
 cdef class ParserSelector(object):
     cdef str key
+    __slots__ = ('key',)
 
     def __cinit__(self, key):
         self.key = key.lower()
@@ -751,6 +754,7 @@ cdef class ParserSelectorClass(ParserSelector):
 
 
 cdef class ParserSelectorName(ParserSelector):
+    __slots__ = ('key', 'parents')
 
     cdef object parents
 
@@ -768,12 +772,13 @@ cdef class ParserSelectorName(ParserSelector):
             for cbase in self.get_bases(base):
                 yield cbase
 
-    def match(self, widget):
-        parents = ParserSelectorName.parents
+    def match(self, object widget):
+        cdef object parents = ParserSelectorName.parents
+        cdef class cls, x
+        cdef list classes
         cls = widget.__class__
         if not cls in parents:
-            classes = [x.__name__.lower() for x in
-                       [cls] + list(self.get_bases(cls))]
+            classes = [x.__name__.lower() for x in chain([cls], self.get_bases(cls))]
             parents[cls] = classes
         return self.key in parents[cls]
 
@@ -785,13 +790,6 @@ cdef class BuilderBase(object):
     By default, :class:`Builder` is a global Kivy instance used in widgets
     that you can use to load other kv files in addition to the default ones.
     '''
-
-    cdef object _match_cache
-    cdef list files
-    cdef dict dynamic_classes
-    cdef dict templates
-    cdef list rules
-    cdef dict rulectx
 
     def __cinit__(self):
         self._match_cache = WeakKeyDictionary()
@@ -844,9 +842,9 @@ cdef class BuilderBase(object):
         self.rules = [x for x in self.rules if x[1].ctx.filename != filename]
         self._clear_matchcache()
         cdef dict templates = {}
-        for x, y in self.templates.items():
-            if y[2] != filename:
-                templates[x] = y
+        for i, j in self.templates.items():
+            if j[2] != filename:
+                templates[i] = j
         self.templates = templates
         if filename in self.files:
             self.files.remove(filename)
@@ -1136,7 +1134,7 @@ cdef class BuilderBase(object):
         cache[widget] = rules
         return rules
 
-    def sync(self):
+    cpdef sync(self):
         '''Execute all the waiting operations, such as the execution of all the
         expressions related to the canvas.
 
@@ -1144,13 +1142,14 @@ cdef class BuilderBase(object):
         '''
         cdef set l = set(_delayed_calls)
         del _delayed_calls[:]
+        cdef object func
         for func in l:
             try:
                 func(None, None)
             except ReferenceError:
                 continue
 
-    cdef unbind_widget(self, int uid):
+    cpdef unbind_widget(self, int uid):
         '''(internal) Unbind all the handlers created by the rules of the
         widget. The :attr:`kivy.uix.widget.Widget.uid` is passed here
         instead of the widget itself, because we are using it in the
