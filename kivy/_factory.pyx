@@ -28,7 +28,7 @@ cdef class FactoryBase(object):
     def __cinit__(self):
         self.classes = {}
         
-    cdef _create_machine(self, object cls, str module, bint is_template, str baseclasses, str filename):
+    cdef Machine _create_machine(self, object cls, str module, bint is_template, str baseclasses, str filename):
         try:
             cls = PyWeakref_NewRef(cls, None)
         finally:
