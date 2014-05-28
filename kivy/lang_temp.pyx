@@ -5,6 +5,7 @@ __all__ = ('Builder', 'BuilderBase', 'BuilderException',
 import codecs
 import re
 import sys
+from itertools import chain
 from re import sub, findall
 from os import environ
 from os.path import join
@@ -138,16 +139,16 @@ cdef class ParserRuleProperty(object):
     __slots__ = ('ctx', 'line', 'name', 'value', 'co_value',
                  'watched_keys', 'mode', 'count')
     #: Associated parser
-    cdef object ctx
+    cdef Parser ctx
     cdef int line
     cdef str ame
-    cdef object value
+    cdef str value
     cdef object co_value
     cdef str mode
     cdef list watched_keys
     cdef int count
 
-    def __cinit__(self, object ctx, int line, str name, object value):
+    def __cinit__(self, Parser ctx, int line, str name, object value):
         #: Associated parser
         self.ctx = ctx
         #: Line of the rule
@@ -167,15 +168,16 @@ cdef class ParserRuleProperty(object):
 
     cdef precompile(self):
         cdef str name = self.name
-        cdef object value = self.value
+        cdef char *value = self.value
 
         # first, remove all the string from the value
         cdef object tmp = sub(lang_str, '', self.value)
 
         # detecting how to handle the value according to the key name
-        cdef str mode = self.mode
         if self.mode is None:
-            self.mode = mode = 'exec' if name[:3] == 'on_' else 'eval'
+            self.mode = 'exec' if name[:3] == 'on_' else 'eval'
+        
+        cdef char *mode = self.mode
         if mode == 'eval':
             # if we don't detect any string/key in it, we can eval and give the
             # result
@@ -184,7 +186,7 @@ cdef class ParserRuleProperty(object):
                 return
 
         # ok, we can compile.
-        cdef str value = '\n' * self.line + value
+        value = '\n' * self.line + value
         self.co_value = compile(value, self.ctx.filename or '<string>', mode)
 
         # for exec mode, we don't need to watch any keys.
@@ -205,10 +207,11 @@ cdef class ParserRuleProperty(object):
                 self.watched_keys = [['_']]
 
     def __repr__(self):
-        return '<ParserRuleProperty name=%r filename=%s:%d ' \
-               'value=%r watched_keys=%r>' % (
-                   self.name, self.ctx.filename, self.line + 1,
-                   self.value, self.watched_keys)
+        return '<ParserRuleProperty name={!r} filename={!s}:{:d} value={!r} watched_keys={!r}>'.format(self.name, 
+                                                                                                       self.ctx.filename,
+                                                                                                       self.line + 1,
+                                                                                                       self.value,
+                                                                                                       self.watched_keys)
 
 
 cdef class ParserRule(object):
@@ -220,7 +223,7 @@ cdef class ParserRule(object):
                  'handlers', 'level', 'cache_marked', 'avoid_previous_rules')
 
     cdef int level
-    cdef object ctx
+    cdef Parser ctx
     cdef int line
     cdef str name
     cdef list children
@@ -233,7 +236,7 @@ cdef class ParserRule(object):
     cdef list cache_marked
     cdef bint avoid_previous_rules
 
-    def __cinit__(self, object ctx, int line, str name, int level):
+    def __cinit__(self, Parser ctx, int line, str name, int level):
         #: Level of the rule in the kv
         self.level = level
         #: Associated parser
@@ -261,7 +264,7 @@ cdef class ParserRule(object):
         #: Indicate if any previous rules should be avoided.
         self.avoid_previous_rules = False
 
-    def __init__(self, ctx, line, name, level):
+    def __init__(self, Parser ctx, int line, str name, int level):
         super(ParserRule, self).__init__()
 
         if level == 0:
@@ -271,12 +274,9 @@ cdef class ParserRule(object):
 
     cdef precompile(self):
         cdef object x
-        for x in self.properties.values():
+        for x in chain(self.properties.values(), self.handlers, self.children):
             x.precompile()
-        for x in self.handlers:
-            x.precompile()
-        for x in self.children:
-            x.precompile()
+
         if self.canvas_before:
             self.canvas_before.precompile()
         if self.canvas_root:
@@ -284,13 +284,14 @@ cdef class ParserRule(object):
         if self.canvas_after:
             self.canvas_after.precompile()
 
-    cdef create_missing(self, widget):
+    cdef create_missing(self, object widget):
         # check first if the widget class already been processed by this rule
         cdef class cls = widget.__class__
         if cls in self.cache_marked:
             return
         self.cache_marked.append(cls)
         cdef str name
+        cdef object value
         for name in self.properties:
             if hasattr(widget, name):
                 continue
@@ -334,6 +335,7 @@ cdef class ParserRule(object):
             name = name[1:]
 
         cdef list rules = name.split(',')
+        cdef object crule
         cdef str rule
         for rule in rules:
             crule = None
@@ -377,8 +379,9 @@ cdef class ParserRule(object):
         if not '@' in item_content:
             raise ParserException(self.ctx, self.line,
                                   'Invalid template name (missing @)')
+        cdef str template_name, template_root_cls
         template_name, template_root_cls = item_content.split('@')
-        self.ctx.templates.append((template_name, template_root_cls, self))
+        self.ctx.templates.append((template_name, template_root_cls, proxy(self)))
 
     def __repr__(self):
         return '<ParserRule name={!r}>'.format(self.name)
@@ -395,14 +398,7 @@ cdef class Parser(object):
                              list(range(ord('0'), ord('9') + 1)) + [ord('_')])
 
     __slots__ = ('rules', 'templates', 'root', 'sourcecode',
-                 'directives', 'filename', 'dynamic_classes')    
-    cdef list rules
-    cdef list templates
-    cdef object root
-    cdef list sourcecode
-    cdef list directives
-    cdef dict dynamic_classes
-    cdef str filename
+                 'directives', 'filename', 'dynamic_classes')
 
     def __cinit__(self, **kwargs):
         self.rules = []
@@ -420,6 +416,7 @@ cdef class Parser(object):
         self.parse(content)
 
     cdef execute_directives(self):
+        cdef str cmd
         for ln, cmd in self.directives:
             cmd = cmd.strip()
             if __debug__:
@@ -476,7 +473,7 @@ cdef class Parser(object):
         if not lines:
             return
         cdef int num_lines = len(lines)
-        cdef list lines = list(zip(list(xrange(num_lines)), lines))
+        lines = list(zip(list(xrange(num_lines)), lines))
         self.sourcecode = lines[:]
 
         if __debug__:
@@ -489,9 +486,11 @@ cdef class Parser(object):
         self.execute_directives()
 
         # Get object from the first level
+        cdef list objects, remaining_lines
         objects, remaining_lines = self.parse_level(0, lines)
 
         # Precompile rules tree
+        cdef object rule
         for rule in objects:
             rule.precompile()
 
@@ -507,6 +506,8 @@ cdef class Parser(object):
            i.e. a comment line's first non-whitespace character must be a #.
         '''
         # extract directives
+        cdef int ln
+        cdef str line, stripped
         for ln, line in lines[:]:
             stripped = line.strip()
             if stripped[:2] == '#:':
@@ -516,16 +517,20 @@ cdef class Parser(object):
             if not stripped:
                 lines.remove((ln, line))
 
-    cdef parse_level(self, int level, list lines, int spaces=0):
+    cdef tuple parse_level(self, int level, list lines, int spaces=0):
         '''Parse the current level (level * spaces) indentation.
         '''
         cdef int indent = spaces * level if spaces > 0 else 0
         cdef list objects = []
+        cdef int ln, count
+        cdef tuple line
+        cdef str tmp
 
         cdef object current_object = None
         cdef object current_property = None
         cdef object current_propobject = None
         cdef int i = 0
+
         while i < len(lines):
             line = lines[i]
             ln, content = line
@@ -543,7 +548,7 @@ cdef class Parser(object):
 
             count = len(tmp)
 
-            if spaces > 0 and count % spaces != 0:
+            if spaces > 0 and (count % spaces) != 0:
                 raise ParserException(self, ln,
                                       'Invalid indentation, '
                                       'must be a multiple of '
@@ -891,8 +896,7 @@ cdef class BuilderBase(object):
             # create root object is exist
             if kwargs['rulesonly'] and parser.root:
                 filename = kwargs.get('rulesonly', '<string>')
-                raise Exception('The file <%s> contain also non-rules '
-                                'directives' % filename)
+                raise Exception('The file {!s} contain also non-rules directives'.format(filename))
 
             # save the loaded files only if there is a root without
             # template/dynamic classes
