@@ -8,4 +8,4 @@ cdef class FactoryBase(object):
     cdef _create_machine(self, object cls, str module, bint is_template, str baseclasses, str filename)
     cpdef bint is_template(self, str classname)
     cpdef unregister_from_filename(self, str filename)
-    cpdef register(self, str classname, object cls=*, str module=*, bint is_template=*, str baseclasses=*, str filename=*)
+    cpdef register(self, str classname, class cls=*, str module=*, bint is_template=*, str baseclasses=*, str filename=*)
