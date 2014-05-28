@@ -30,7 +30,7 @@ trace = Logger.trace
 cdef object global_idmap = WeakValueDictionary()
 
 # late import
-cdef object Instruction = None
+cdef object Instruction = Factory.get('Instruction')
 
 # register cache for creating new classtype (template)
 Cache.register('kv.lang')
@@ -709,29 +709,32 @@ def create_handler(iself, element, key, value, rule, idmap, delayed=False):
 
 
 cdef class ParserSelector(object):
-    cdef str key
     __slots__ = ('key',)
+    cdef str key
+
+    cdef bint match(self, object widget):
+        raise NotImplemented()
+        return False #?
 
     def __cinit__(self, key):
         self.key = key.lower()
 
     def __repr__(self):
-        return '<%s key=%s>' % (self.__class__.__name__, self.key)
-
-    def match(self, widget):
-        raise NotImplemented()
+        return '<{!s} key={!s}>'.format(self.__class__.__name__, self.key)
 
 
 cdef class ParserSelectorId(ParserSelector):
 
-    def match(self, widget):
+    cpdef bint match(self, object widget):
         if widget.id:
             return widget.id.lower() == self.key
+        else:
+            return False
 
 
 cdef class ParserSelectorClass(ParserSelector):
 
-    def match(self, widget):
+    cpdef bint match(self, object widget):
         return self.key in widget.cls
 
 
@@ -743,7 +746,7 @@ cdef class ParserSelectorName(ParserSelector):
     def __cinit__(self, *args):
         self.parents = WeakKeyDictionary()
 
-    def get_bases(self, object cls):
+    cpdef get_bases(self, object cls):
         cdef object base, cbase
         for base in cls.__bases__:
             if base.__name__ == 'object':
@@ -754,13 +757,14 @@ cdef class ParserSelectorName(ParserSelector):
             for cbase in self.get_bases(base):
                 yield cbase
 
-    def match(self, object widget):
+    cpdef bint match(self, object widget):
         cdef object parents = ParserSelectorName.parents
         cdef class cls, x
         cdef list classes
+
         cls = widget.__class__
         if not cls in parents:
-            classes = [x.__name__.lower() for x in chain([cls], self.get_bases(cls))]
+            classes = [x.__name__.lower() for x in chain((cls,), self.get_bases(cls))]
             parents[cls] = classes
         return self.key in parents[cls]
 
@@ -820,7 +824,7 @@ cdef class BuilderBase(object):
         # remove rules
         cdef tuple x
         self.rules = [x for x in self.rules if x[1].ctx.filename != filename]
-        self._clear_matchcache()
+        BuilderBase._match_cache.clear()
         if filename in self.files:
             self.files.remove(filename)
 
@@ -853,7 +857,7 @@ cdef class BuilderBase(object):
 
             # merge rules with our rules
             self.rules.extend(parser.rules)
-            self._clear_matchcache()
+            BuilderBase._match_cache.clear()
 
             # register all the dynamic classes
             for name, baseclasses in iteritems(parser.dynamic_classes):
@@ -886,9 +890,6 @@ cdef class BuilderBase(object):
             return
         for rule in rules:
             self._apply_rule(widget, rule, rule)
-
-    cdef _clear_matchcache(self):
-        BuilderBase._match_cache = WeakKeyDictionary()
 
     cdef _apply_rule(self, widget, rule, rootrule):
         # widget: the current instanciated widget
@@ -1070,8 +1071,6 @@ cdef class BuilderBase(object):
 
     cdef _build_canvas(self, object canvas, object widget, object rule, object rootrule):
         global Instruction
-        if Instruction is None:
-            Instruction = Factory.get('Instruction')
         idmap = copy(self.rulectx[rootrule]['ids'])
         for crule in rule.children:
             name = crule.name
