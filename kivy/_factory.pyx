@@ -41,7 +41,7 @@ cdef class FactoryBase(object):
         else:
             return 0
 
-    cpdef register(self, str classname, object cls=None, str module=None, bint is_template=0, str baseclasses=None, str filename=None):
+    cpdef register(self, str classname, class cls=None, str module=None, bint is_template=0, str baseclasses=None, str filename=None):
         if cls is None and module is None and baseclasses is None:
             raise ValueError('You must specify either cls= or module= or baseclasses=')
         elif classname in self.classes:
@@ -64,7 +64,7 @@ cdef class FactoryBase(object):
                 raise AttributeError
             raise FactoryException('Unknown class {!s}'.format(name))
 
-        item = classes[name]
+        cdef Machine item = classes[name]
         
         try:
             cls = _get_object(item.cls)
