@@ -1042,8 +1042,8 @@ cdef class BuilderBase(object):
 
         .. versionadded:: 1.7.0
         '''
-        cdef set l = set(_delayed_calls)
-        del _delayed_calls[:]
+        cdef int i
+        cdef set l = set(_delayed_calls.pop() for i in xrange(len(_delayed_calls)))
         cdef object func
         for func in l:
             try:
