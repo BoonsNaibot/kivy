@@ -311,8 +311,6 @@ cdef class ParserRule(object):
         cdef char *c = self.name[0]
         if c == '<':
             self._build_rule()
-        elif c == '[':
-            self._build_template()
         else:
             if self.ctx.root is not None:
                 raise ParserException(
@@ -368,21 +366,6 @@ cdef class ParserRule(object):
 
             self.ctx.rules.append((crule, self))
 
-    cdef _build_template(self):
-        cdef str name = self.name
-        if __debug__:
-            trace('Builder: build template for {!s}'.format(name))
-        if name[0] != '[' or name[-1] != ']':
-            raise ParserException(self.ctx, self.line,
-                                  'Invalid template (must be inside [])')
-        cdef str item_content = name[1:-1]
-        if not '@' in item_content:
-            raise ParserException(self.ctx, self.line,
-                                  'Invalid template name (missing @)')
-        cdef str template_name, template_root_cls
-        template_name, template_root_cls = item_content.split('@')
-        self.ctx.templates.append((template_name, template_root_cls, proxy(self)))
-
     def __repr__(self):
         return '<ParserRule name={!r}>'.format(self.name)
 
@@ -397,12 +380,11 @@ cdef class Parser(object):
                              list(range(ord('a'), ord('z') + 1)) +
                              list(range(ord('0'), ord('9') + 1)) + [ord('_')])
 
-    __slots__ = ('rules', 'templates', 'root', 'sourcecode',
+    __slots__ = ('rules', 'root', 'sourcecode',
                  'directives', 'filename', 'dynamic_classes')
 
     def __cinit__(self, **kwargs):
         self.rules = []
-        self.templates = []
         self.root = None
         self.sourcecode = []
         self.directives = []
@@ -785,7 +767,7 @@ cdef class ParserSelectorName(ParserSelector):
 
 cdef class BuilderBase(object):
     '''The Builder is responsible for creating a :class:`Parser` for parsing a
-    kv file, merging the results into its internal rules, templates, etc.
+    kv file, merging the results into its internal rules, etc.
 
     By default, :class:`Builder` is a global Kivy instance used in widgets
     that you can use to load other kv files in addition to the default ones.
@@ -795,7 +777,6 @@ cdef class BuilderBase(object):
         self._match_cache = WeakKeyDictionary()
         self.files = []
         self.dynamic_classes = {}
-        self.templates = {}
         self.rules = []
         self.rulectx = {}
 
@@ -833,19 +814,13 @@ cdef class BuilderBase(object):
 
         .. warning::
 
-            This will not remove rules or templates already applied/used on
-            current widgets. It will only effect the next widgets creation or
-            template invocation.
+            This will not remove rules already applied/used on
+            current widgets. It will only effect the next widgets creation invocation.
         '''
-        # remove rules and templates
+        # remove rules
         cdef tuple x
         self.rules = [x for x in self.rules if x[1].ctx.filename != filename]
         self._clear_matchcache()
-        cdef dict templates = {}
-        for i, j in self.templates.items():
-            if j[2] != filename:
-                templates[i] = j
-        self.templates = templates
         if filename in self.files:
             self.files.remove(filename)
 
@@ -880,13 +855,6 @@ cdef class BuilderBase(object):
             self.rules.extend(parser.rules)
             self._clear_matchcache()
 
-            # add the template found by the parser into ours
-            for name, cls, template in parser.templates:
-                self.templates[name] = (cls, template, fn)
-                Factory.register(name,
-                                 cls=partial(self.template, name),
-                                 is_template=True)
-
             # register all the dynamic classes
             for name, baseclasses in iteritems(parser.dynamic_classes):
                 Factory.register(name, baseclasses=baseclasses, filename=fn)
@@ -897,9 +865,8 @@ cdef class BuilderBase(object):
                 raise Exception('The file {!s} contain also non-rules directives'.format(filename))
 
             # save the loaded files only if there is a root without
-            # template/dynamic classes
-            if fn and (parser.templates or
-                       parser.dynamic_classes or parser.rules):
+            # dynamic classes
+            if fn and (parser.dynamic_classes or parser.rules):
                 self.files.append(fn)
 
             if parser.root:
@@ -909,51 +876,21 @@ cdef class BuilderBase(object):
         finally:
             self._current_filename = None
 
-    def template(self, *args, **ctx):
-        '''Create a specialized template using a specific context.
-        .. versionadded:: 1.0.5
-
-        With templates, you can construct custom widgets from a kv lang
-        definition by giving them a context. Check :ref:`Template usage
-        <template_usage>`.
-        '''
-        # Prevent naming clash with whatever the user might be putting into the
-        # ctx as key.
-        name = args[0]
-        if name not in self.templates:
-            raise Exception('Unknown <%s> template name' % name)
-        baseclasses, rule, fn = self.templates[name]
-        key = '%s|%s' % (name, baseclasses)
-        cls = Cache.get('kv.lang', key)
-        if cls is None:
-            rootwidgets = []
-            for basecls in baseclasses.split('+'):
-                rootwidgets.append(Factory.get(basecls))
-            cls = type(name, tuple(rootwidgets), {})
-            Cache.append('kv.lang', key, cls)
-        widget = cls()
-        # in previous versions, ``ctx`` is passed as is as ``template_ctx``
-        # preventing widgets in it from be collected by the GC. This was
-        # especially relevant to AccordionItem's title_template.
-        proxy_ctx = {k: get_proxy(v) for k, v in ctx.items()}
-        self._apply_rule(widget, rule, rule, template_ctx=proxy_ctx)
-        return widget
-
-    def apply(self, widget):
+    cpdef apply(self, object widget):
         '''Search all the rules that match the widget and apply them.
         '''
         rules = self.match(widget)
         if __debug__:
-            trace('Builder: Found %d rules for %s' % (len(rules), widget))
+            trace('Builder: Found {:d} rules for {!s}'.format(len(rules), widget))
         if not rules:
             return
         for rule in rules:
             self._apply_rule(widget, rule, rule)
 
-    def _clear_matchcache(self):
+    cdef _clear_matchcache(self):
         BuilderBase._match_cache = WeakKeyDictionary()
 
-    cdef _apply_rule(self, widget, rule, rootrule, template_ctx=None):
+    cdef _apply_rule(self, widget, rule, rootrule):
         # widget: the current instanciated widget
         # rule: the current rule
         # rootrule: the current root rule (for children of a rule)
@@ -968,10 +905,6 @@ cdef class BuilderBase(object):
         # extract the context of the rootrule (not rule!)
         assert(rootrule in self.rulectx)
         rctx = self.rulectx[rootrule]
-
-        # if a template context is passed, put it as "ctx"
-        if template_ctx is not None:
-            rctx['ids']['ctx'] = QueryDict(template_ctx)
 
         # if we got an id, put it in the root rule for a later global usage
         if rule.id:
@@ -1010,53 +943,21 @@ cdef class BuilderBase(object):
 
         # create children tree
         Factory_get = Factory.get
-        Factory_is_template = Factory.is_template
+        cdef str cname
+        cdef class cls
+        cdef object crule
         for crule in rule.children:
             cname = crule.name
-
-            # depending if the child rule is a template or not, we are not
-            # having the same approach
             cls = Factory_get(cname)
 
-            if Factory_is_template(cname):
-                # we got a template, so extract all the properties and
-                # handlers, and push them in a "ctx" dictionary.
-                ctx = {}
-                idmap = copy(global_idmap)
-                idmap.update({'root': rctx['ids']['root']})
-                if 'ctx' in rctx['ids']:
-                    idmap.update({'ctx': rctx['ids']['ctx']})
-                try:
-                    for prule in crule.properties.values():
-                        value = prule.co_value
-                        if type(value) is CodeType:
-                            value = eval(value, idmap)
-                        ctx[prule.name] = value
-                    for prule in crule.handlers:
-                        value = eval(prule.value, idmap)
-                        ctx[prule.name] = value
-                except Exception as e:
-                    raise BuilderException(
-                        prule.ctx, prule.line,
-                        '{}: {}'.format(e.__class__.__name__, e))
-
-                # create the template with an explicit ctx
-                child = cls(**ctx)
-                widget.add_widget(child)
-
-                # reference it on our root rule context
-                if crule.id:
-                    rctx['ids'][crule.id] = child
-
-            else:
-                # we got a "normal" rule, construct it manually
-                # we can't construct it without __no_builder=True, because the
-                # previous implementation was doing the add_widget() before
-                # apply(), and so, we could use "self.parent".
-                child = cls(__no_builder=True)
-                widget.add_widget(child)
-                self.apply(child)
-                self._apply_rule(child, crule, rootrule)
+            # we got a "normal" rule, construct it manually
+            # we can't construct it without __no_builder=True, because the
+            # previous implementation was doing the add_widget() before
+            # apply(), and so, we could use "self.parent".
+            child = cls(__no_builder=True)
+            widget.add_widget(child)
+            self.apply(child)
+            self._apply_rule(child, crule, rootrule)
 
         # append the properties and handlers to our final resolution task
         if rule.properties:
