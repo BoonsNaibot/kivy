@@ -7,6 +7,11 @@ class FactoryException(Exception):
     pass
 
 cdef class Machine:
+    cdef readonly object cls
+    cdef readonly str module
+    cdef readonly bint is_template
+    cdef readonly str baseclasses
+    cdef readonly str filename
 
     __slots__ = ('cls', 'module', 'is_template', 'baseclasses', 'filename')
 
@@ -23,7 +28,7 @@ cdef class FactoryBase(object):
     def __cinit__(self):
         self.classes = {}
         
-    cdef Machine _create_machine(self, object cls, str module, bint is_template, str baseclasses, str filename):
+    cdef object _create_machine(self, object cls, str module, bint is_template, str baseclasses, str filename):
         try:
             cls = PyWeakref_NewRef(cls, None)
         finally:
