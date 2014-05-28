@@ -883,7 +883,7 @@ cdef class BuilderBase(object):
     cpdef apply(self, object widget):
         '''Search all the rules that match the widget and apply them.
         '''
-        rules = self.match(widget)
+        cdef list rules = self.match(widget)
         if __debug__:
             trace('Builder: Found {:d} rules for {!s}'.format(len(rules), widget))
         if not rules:
