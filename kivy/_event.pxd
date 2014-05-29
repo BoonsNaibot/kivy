@@ -1,3 +1,5 @@
+from kivy.weakmethod cimport WeakMethod
+
 cdef class ObjectWithUid(object):
     cdef readonly int uid
 
