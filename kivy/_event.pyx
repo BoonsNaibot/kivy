@@ -17,7 +17,6 @@ __all__ = ('EventDispatcher', )
 
 from functools import partial
 from weakref import WeakKeyDictionary, WeakValueDictionary
-from kivy.weakmethod import WeakMethod
 from kivy.compat import string_types
 from kivy.properties cimport Property, PropertyStorage, ObjectProperty, \
     NumericProperty, StringProperty, ListProperty, DictProperty
@@ -304,6 +303,7 @@ cdef class EventDispatcher(ObjectWithUid):
         '''
         cdef list event_stack = self.__event_stack[event_type]
         cdef object remove = event_stack.remove
+        cdef WeakMethod handler
         for value in reversed(event_stack[:]):
             handler = value()
             if handler is None:
