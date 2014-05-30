@@ -7,7 +7,7 @@ cdef static PyObject *WidgetMetaclass_new(PyTypeObject *subtype, PyObject *args,
     cdef PyObject *name=NULL, *bases=NULL, *attrs=NULL
     cdef WidgetMetaclassObject *self = (WidgetMetaclassObject *)PyType_Type.tp_new(subtype, args, kwargs)
     if (self != NULL):
-    	if (not PyArg_ParseTuple(args, "std", &name, &bases, &attrs)):
+    	if (not PyArg_ParseTuple(args, "s(items){items}", &name, &bases, &attrs)):
             return NULL  
         Factory.register(name, cls=self)
 
