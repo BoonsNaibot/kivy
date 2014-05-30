@@ -1,7 +1,7 @@
-#include Python.h
+cdef extern from 'Python.h':
 
-ctypedef struct WidgetMetaclassObject:
-    PyObject_HEAD
+    ctypedef struct WidgetMetaclassObject:
+        PyObject_HEAD
 
 cdef static PyObject *WidgetMetaclass_new(PyTypeObject *subtype, PyObject *args, PyObject *kwargs):
     cdef PyObject *name=NULL, *bases=NULL, *attrs=NULL
