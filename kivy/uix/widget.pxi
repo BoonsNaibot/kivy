@@ -3,9 +3,9 @@
 ctypedef struct WidgetMetaclassObject:
     PyObject_HEAD
 
-cdef static PyObject *WidgetMetaclass_new(PyTypeObject *type, PyObject *args, PyObject *kwargs):
+cdef static PyObject *WidgetMetaclass_new(PyTypeObject *subtype, PyObject *args, PyObject *kwargs):
     cdef PyObject *name=NULL, *bases=NULL, *attrs=NULL
-    cdef WidgetMetaclassObject *self = (WidgetMetaclassObject *)PyType_Type.tp_new(type, args, kwargs)
+    cdef WidgetMetaclassObject *self = (WidgetMetaclassObject *)PyType_Type.tp_new(subtype, args, kwargs)
     if (self != NULL):
     	if (not PyArg_ParseTuple(args, "std", &name, &bases, &attrs)):
             return NULL  
