@@ -1,3 +1,5 @@
+from cpython.ref cimport PyObject
+
 cdef extern from 'Python.h':
 
     ctypedef struct WidgetMetaclassObject:
