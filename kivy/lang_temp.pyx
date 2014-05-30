@@ -891,7 +891,7 @@ cdef class BuilderBase(object):
         for rule in rules:
             self._apply_rule(widget, rule, rule)
 
-    cdef _apply_rule(self, widget, rule, rootrule):
+    cdef _apply_rule(self, object widget, ParserRule rule, ParserRule rootrule):
         # widget: the current instanciated widget
         # rule: the current rule
         # rootrule: the current root rule (for children of a rule)
