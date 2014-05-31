@@ -4,7 +4,7 @@ typedef struct {
     PyObject_HEAD
     } WidgetMetaclassObject;
 
-extern PyObject *WidgetMetaclass_new(PyTypeObject *subtype, PyObject *args, PyObject *kwargs, PyObject *Factory=NULL);
+extern PyObject *WidgetMetaclass_new(PyTypeObject *subtype, PyObject *args, PyObject *kwargs, PyObject);
 
 static PyTypeObject WidgetMetaclassType = {
     PyObject_HEAD_INIT(NULL)
