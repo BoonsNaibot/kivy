@@ -10,7 +10,7 @@ static PyObject *WidgetMetaclass_new(PyTypeObject *subtype, PyObject *args, PyOb
 static PyTypeObject WidgetMetaclassType = {
     PyObject_HEAD_INIT(NULL)
     0,                         /* ob_size */
-    'WidgetMetaclass',         /* tp_name */
+    "WidgetMetaclass",         /* tp_name */
     sizeof(WidgetMetaclassObject),             /* tp_basicsize */
     0,                         /*  tp_itemsize */
     0,                         /*  tp_dealloc */
@@ -29,7 +29,7 @@ static PyTypeObject WidgetMetaclassType = {
     0,                         /*  tp_setattro */
     0,                         /*  tp_as_buffer */
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE, /*  tp_flags */
-    'WidgetMetaclass',      /*  tp_doc  */
+    "WidgetMetaclass",      /*  tp_doc  */
     0,		               /*  tp_traverse */ 
     0,		               /*  tp_clear  */
     0,		               /*  tp_richcompare */ 
