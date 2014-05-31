@@ -1,18 +1,10 @@
 #include <Python.h>
-    
 
 typedef struct {
     PyObject_HEAD
     } WidgetMetaclassObject;
 
-
-static PyObject *WidgetMetaclass_new(PyTypeObject *subtype, PyObject *args, PyObject *kwargs, PyObject *Factory=NULL)
-    {
-    WidgetMetaclassObject *self = (WidgetMetaclassObject *)PyType_Type.tp_new(subtype, args, kwargs);
-    if (self != NULL) && (Factory != NULL)
-        Factory->register(self->tp_name, cls=(PyObject *)self);
-    return (PyObject *)self;
-    }
+extern PyObject *WidgetMetaclass_new(PyTypeObject *subtype, PyObject *args, PyObject *kwargs, PyObject *Factory=NULL);
 
 static PyTypeObject WidgetMetaclassType = {
     PyObject_HEAD_INIT(NULL)
@@ -57,7 +49,7 @@ static PyTypeObject WidgetMetaclassType = {
     };
 
 
-PyObject *initmetaclass(PyTypeObject *type, PyObject *op, PyTypeObject *subtype, PyObject *args, PyObject *kwargs, PyObject *Factory)
+PyObject *initmetaclass(PyTypeObject *type, PyObject *op, PyTypeObject *subtype, PyObject *args, PyObject *kwargs)
 {
     PyObject *t, *c;
 
@@ -70,6 +62,6 @@ PyObject *initmetaclass(PyTypeObject *type, PyObject *op, PyTypeObject *subtype,
       return;
 
     Py_INCREF(&type);
-    c = t.tp_new(subtype, args, kwargs, Factory);
+    c = t.tp_new(subtype, args, kwargs);
     return c;
 }
