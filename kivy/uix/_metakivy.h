@@ -49,7 +49,7 @@ static PyTypeObject WidgetMetaclassType = {
     };
 
 
-PyObject *initmetaclass(PyTypeObject *type, PyObject *op, PyTypeObject *subtype, PyObject *args, PyObject *kwargs)
+PyObject *initmetaclass(PyTypeObject *type, PyObject *op, PyObject *subtype, PyObject *args, PyObject *kwargs)
 {
     PyObject *t, *c;
 
@@ -62,6 +62,6 @@ PyObject *initmetaclass(PyTypeObject *type, PyObject *op, PyTypeObject *subtype,
       return;
 
     Py_INCREF(&type);
-    c = t.tp_new(subtype, args, kwargs);
+    c = t.tp_new((PyTypeObject *)subtype, args, kwargs);
     return c;
 }
