@@ -5,7 +5,14 @@ typedef struct {
     PyObject_HEAD
     } WidgetMetaclassObject;
 
+
 static PyObject *WidgetMetaclass_new(PyTypeObject *subtype, PyObject *args, PyObject *kwargs)
+    {
+    WidgetMetaclassObject *self = (WidgetMetaclassObject *)PyType_Type.tp_new(subtype, args, kwargs);
+    if (self != NULL) 
+        Factory.register(self->tp_name, cls=self);
+    return (PyObject *)self;
+    }
 
 static PyTypeObject WidgetMetaclassType = {
     PyObject_HEAD_INIT(NULL)
