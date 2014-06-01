@@ -315,7 +315,7 @@ cdef class EventDispatcher(ObjectWithUid):
             if value.is_dead:
                 # handler have gone, must be removed
                 remove(value)
-            elif __ccall__(<PyObject*>value(), <PyObject*>(sargs)):
+            elif __ccall__(<PyObject*>value(), <PyObject*>sargs):
                 return True
 
         cdef object handler = getattr(self, event_type)
