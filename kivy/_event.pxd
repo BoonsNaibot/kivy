@@ -1,3 +1,4 @@
+from cpython.ref cimport PyObject
 from kivy.weakmethod cimport WeakMethod
 
 cdef class ObjectWithUid(object):
