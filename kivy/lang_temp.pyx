@@ -658,7 +658,7 @@ def custom_callback(__kvlang__, idmap, *largs, **kwargs):
     exec(__kvlang__.co_value, idmap)
 
 
-def create_handler(iself, element, key, value, rule, idmap, delayed=False):
+cdef create_handler(EventDispatcher iself, object element, str key, object value, ParserRuleProperty rule, dict idmap, bint delayed=0):
     locals()['__kvlang__'] = rule
 
     # create an handler
@@ -666,18 +666,18 @@ def create_handler(iself, element, key, value, rule, idmap, delayed=False):
     if uid not in _handlers:
         _handlers[uid] = []
 
-    idmap = copy(idmap)
+    cdef dict idmap = copy(idmap)
     idmap.update(global_idmap)
     idmap['self'] = iself.proxy_ref
 
     def call_fn(*args):
         if __debug__:
-            trace('Builder: call_fn %s, key=%s, value=%r, %r' % (
+            trace('Builder: call_fn {!s}, key={!s}, value={!r}, {!r}'.format(
                 element, key, value, rule.value))
         rule.count += 1
         e_value = eval(value, idmap)
         if __debug__:
-            trace('Builder: call_fn => value=%r' % (e_value, ))
+            trace('Builder: call_fn => value={!r}'.format(e_value))
         setattr(element, key, e_value)
 
     def delayed_call_fn(*args):
@@ -686,6 +686,9 @@ def create_handler(iself, element, key, value, rule, idmap, delayed=False):
     fn = delayed_call_fn if delayed else call_fn
 
     # bind every key.value
+    cdef list k
+    cdef EventDispatcher f
+    cdef str x
     if rule.watched_keys is not None:
         for k in rule.watched_keys:
             try:
@@ -712,7 +715,7 @@ cdef class ParserSelector(object):
     __slots__ = ('key',)
     cdef str key
 
-    cdef bint match(self, object widget):
+    cdef bint match(ParserSelector self, EventDispatcher widget):
         raise NotImplemented()
         return False #?
 
@@ -725,7 +728,7 @@ cdef class ParserSelector(object):
 
 cdef class ParserSelectorId(ParserSelector):
 
-    cpdef bint match(self, object widget):
+    cdef bint match(ParserSelectorId self, EventDispatcher widget):
         if widget.id:
             return widget.id.lower() == self.key
         else:
@@ -734,7 +737,7 @@ cdef class ParserSelectorId(ParserSelector):
 
 cdef class ParserSelectorClass(ParserSelector):
 
-    cpdef bint match(self, object widget):
+    cdef bint match(ParserSelectorClass self, EventDispatcher widget):
         return self.key in widget.cls
 
 
@@ -746,8 +749,8 @@ cdef class ParserSelectorName(ParserSelector):
     def __cinit__(self, *args):
         self.parents = WeakKeyDictionary()
 
-    cpdef get_bases(self, object cls):
-        cdef object base, cbase
+    cdef get_bases(self, class cls):
+        cdef class base, cbase
         for base in cls.__bases__:
             if base.__name__ == 'object':
                 break
@@ -757,14 +760,14 @@ cdef class ParserSelectorName(ParserSelector):
             for cbase in self.get_bases(base):
                 yield cbase
 
-    cpdef bint match(self, object widget):
+    cdef bint match(ParserSelectorName self, EventDispatcher widget):
         cdef object parents = ParserSelectorName.parents
         cdef class cls, x
-        cdef list classes
+        cdef tuple classes
 
         cls = widget.__class__
         if not cls in parents:
-            classes = [x.__name__.lower() for x in chain((cls,), self.get_bases(cls))]
+            classes = tuple(x.__name__.lower() for x in chain((cls,), self.get_bases(cls)))
             parents[cls] = classes
         return self.key in parents[cls]
 
@@ -841,7 +844,7 @@ cdef class BuilderBase(object):
                 widget inside the definition.
         '''
         kwargs.setdefault('rulesonly', False)
-        cdef str fn, name
+        cdef str fn, name, baseclasses
         self._current_filename = fn = kwargs.get('filename', None)
 
         # put a warning if a file is loaded multiple times
@@ -880,9 +883,10 @@ cdef class BuilderBase(object):
         finally:
             self._current_filename = None
 
-    cpdef apply(self, object widget):
+    cpdef apply(self, EventDispatcher widget):
         '''Search all the rules that match the widget and apply them.
         '''
+        cdef ParserRule rule
         cdef list rules = self.match(widget)
         if __debug__:
             trace('Builder: Found {:d} rules for {!s}'.format(len(rules), widget))
