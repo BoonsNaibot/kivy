@@ -26,6 +26,10 @@ cdef object cache_properties = WeakKeyDictionary()
 cdef object cache_events = WeakKeyDictionary()
 cdef object cache_events_handlers = WeakKeyDictionary()
 
+cdef inline object __ccall__(void *py_function, void *args):
+    py_args = <tuple>args if args is not NULL else ()
+    return (<object>py_function)(*py_args)
+
 def _get_bases(cls):
     for base in cls.__bases__:
         if base.__name__ == 'object':
@@ -297,7 +301,7 @@ cdef class EventDispatcher(ObjectWithUid):
         '''
         return self.__event_stack.keys()
 
-    def dispatch(self, str event_type, *largs):
+    def dispatch(self, str event_type, *args):
         '''Dispatch an event across all the handlers added in bind().
         As soon as a handler returns True, the dispatching stops.
         '''
@@ -310,11 +314,11 @@ cdef class EventDispatcher(ObjectWithUid):
             if value.is_dead:
                 # handler have gone, must be removed
                 remove(value)
-            elif value()(self, *largs):
+            elif __ccall__(<PyObject*>value(), <PyObject*>([self] + args)):
                 return True
 
         handler = getattr(self, event_type)
-        return handler(*largs)
+        return __ccall__(<PyObject*>handler, <PyObject*>args)
 
     #
     # Properties
