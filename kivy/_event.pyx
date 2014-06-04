@@ -26,9 +26,11 @@ cdef object cache_properties = WeakKeyDictionary()
 cdef object cache_events = WeakKeyDictionary()
 cdef object cache_events_handlers = WeakKeyDictionary()
 
-cdef inline object __ccall__(void *py_function, void *args):
-    py_args = <tuple>args if args is not NULL else ()
-    return (<object>py_function)(*py_args)
+cdef inline PyObject *__ccall__(void *py_function, void *args):
+    cdef PyTupleObject *py_args = <PyTupleObject*>args if args is not NULL else PyTuple_New(0)
+    cdef PyObject ret = *PyObject_CallFunctionObjArgs(py_function, py_args)
+    Py_DECREF(&pyargs)
+    return ret
 
 cdef object _get_bases(object cls):
     cdef object base, cbase
@@ -316,7 +318,7 @@ cdef class EventDispatcher(ObjectWithUid):
             if value.is_dead:
                 # handler have gone, must be removed
                 remove(value)
-            elif __ccall__(<PyObject*>value(), <PyObject*>([self]+args)):
+            elif <object>__ccall__(<PyObject*>value(), <PyObject*>([self]+args)):
                 return True
 
         return <object>PyObject_CallMethodObjArgs(<PyObject*>self, <PyObject*>event_type, <PyObject*>args)
