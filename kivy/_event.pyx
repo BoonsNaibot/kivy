@@ -212,7 +212,7 @@ cdef class EventDispatcher(ObjectWithUid):
         '''
         return event_type in self.__event_stack
 
-    def bind(self, **kwargs):
+    cpdef bind(self, **kwargs):
         '''Bind an event type or a property to a callback.
 
         Usage::
@@ -367,7 +367,7 @@ cdef class EventDispatcher(ObjectWithUid):
         '''
         return partial(EventDispatcher.__proxy_getter, self, self, name)
 
-    def property(self, name):
+    def get_property(self, str name):
         '''Get a property instance from the name.
 
         .. versionadded:: 1.0.9
