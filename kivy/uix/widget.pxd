@@ -7,7 +7,9 @@ cdef inline PY_INIT(T)
 cdef extern from "Python.h":
     object PyWeakref_NewProxy(object ob, object callback)
     ctypedef struct WidgetMetaclass "PyTypeObject":
-        object tp_init(WidgetMetaclass* this, object that, PyObject* theother)   
+        PyObject *ob_type "&PyType_Type"
+        PyObject *tp_base "&PyType_Type"
+        object tp_init(WidgetMetaclass* this, object that, PyObject* theother)     
     ctypedef EventDispatcher WidgetBase "<EventDispatcher>PY_INIT(EventDispatcher)"
 
 
