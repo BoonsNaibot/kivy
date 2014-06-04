@@ -294,13 +294,14 @@ cdef class EventDispatcher(ObjectWithUid):
         cdef PropertyStorage ps = self.__storage[name]
         return ps.observers
 
-    def events(EventDispatcher self):
-        '''Return all the events in the class. Can be used for introspection.
-
-        .. versionadded:: 1.8.0
-
-        '''
-        return self.__event_stack.keys()
+    property events:
+        def __get__(EventDispatcher self):
+            '''Return all the events in the class. Can be used for introspection.
+    
+            .. versionadded:: 1.8.0
+    
+            '''
+            return self.__event_stack.keys()
 
     def dispatch(self, str event_type, *args):
         '''Dispatch an event across all the handlers added in bind().
@@ -378,24 +379,25 @@ cdef class EventDispatcher(ObjectWithUid):
         '''
         return self.__properties[name]
 
-    cpdef dict properties(EventDispatcher self):
+    property properties:
         '''Return all the properties in the class in a dictionary of
         key/property class. Can be used for introspection.
 
         .. versionadded:: 1.0.9
         '''
-        # fast path, use the cache first
-        __cls__ = self.__class__
-        if __cls__ in cache_properties:
-            return dict(cache_properties[__cls__])
-
-        cdef dict ret
-        cdef object p
-        ret = {}
-        p = self.__properties
-        for x in self.__storage:
-            ret[x] = p[x]
-        return ret
+        def __get__(EventDispatcher self):
+            # fast path, use the cache first
+            cdef object __cls__ = self.__class__
+            if __cls__ in cache_properties:
+                return dict(cache_properties[__cls__])
+    
+            cdef dict ret
+            cdef object p
+            ret = {}
+            p = self.__properties
+            for x in self.__storage:
+                ret[x] = p[x]
+            return ret
 
     def create_property(self, name, value=None):
         '''Create a new property at runtime.
