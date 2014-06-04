@@ -324,15 +324,15 @@ cdef class EventDispatcher(ObjectWithUid):
     #
     # Properties
     #
-    def __proxy_setter(self, EventDispatcher dstinstance, name, instance, value):
+    cdef __proxy_setter(EventDispatcher self, EventDispatcher dstinstance, name, instance, value):
         cdef Property prop = self.__properties[name]
         prop.set(dstinstance, value)
 
-    def __proxy_getter(self, EventDispatcher dstinstance, name, instance):
+    cdef object __proxy_getter(EventDispatcher self, EventDispatcher dstinstance, name, instance):
         cdef Property prop = self.__properties[name]
         return prop.get(dstinstance)
 
-    def setter(self, name):
+    def setter(self, str name):
         '''Return the setter of a property. Use: instance.setter('name').
         The setter is a convenient callback function useful if you want 
         to directly bind one property to another. 
@@ -358,14 +358,14 @@ cdef class EventDispatcher(ObjectWithUid):
                 number2: self.number1
 
         '''
-        return partial(self.__proxy_setter, self, name)
+        return partial(EventDispatcher.__proxy_setter, self, self, name)
 
-    def getter(self, name):
+    def getter(self, str name):
         '''Return the getter of a property.
 
         .. versionadded:: 1.0.9
         '''
-        return partial(self.__proxy_getter, self, name)
+        return partial(EventDispatcher.__proxy_getter, self, self, name)
 
     def property(self, name):
         '''Get a property instance from the name.
