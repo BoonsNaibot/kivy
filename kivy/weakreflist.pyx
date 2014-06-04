@@ -10,6 +10,7 @@ cdef inline object _get_ref(object x, object self):
 cdef class WeakList(list):
 
     def __init__(self, list items=None):
+        cdef object x
         items = items or []
         super(WeakList, self).__init__((_get_ref(x, self) for x in items))
 
@@ -20,10 +21,12 @@ cdef class WeakList(list):
         return _get_object(super(WeakList, self).__getitem__(item))
 
     def __getslice__(self, int i, int j):
+        cdef object x
         cdef list slice = super(WeakList, self).__getslice__(i, j)
         return [_get_object(x) for x in slice] #slow?
 
     def __iter__(self):
+        cdef object x
         for x in super(WeakList, self).__iter__():
             yield _get_object(x)
 
@@ -31,6 +34,7 @@ cdef class WeakList(list):
         return "WeakList({!r})".format(list(self))
 
     def __reversed__(self, *args, **kwargs):
+        cdef object x
         for x in super(WeakList, self).__reversed__(*args, **kwargs):
             yield _get_object(x)
 
@@ -51,6 +55,7 @@ cdef class WeakList(list):
         return super(WeakList, self).count(_get_ref(item, self))
 
     def extend(self, object items):
+        cdef object x
         super(WeakList, self).extend((_get_ref(x, self) for x in items))
 
     def index(self, object item):
