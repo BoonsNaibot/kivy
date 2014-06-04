@@ -306,7 +306,6 @@ cdef class EventDispatcher(ObjectWithUid):
         As soon as a handler returns True, the dispatching stops.
         '''
         cdef list event_stack = self.__event_stack[event_type]
-        cdef list sargs = [self] + args
         cdef WeakMethod value
         cdef object remove
         
@@ -315,11 +314,10 @@ cdef class EventDispatcher(ObjectWithUid):
             if value.is_dead:
                 # handler have gone, must be removed
                 remove(value)
-            elif __ccall__(<PyObject*>value(), <PyObject*>sargs):
+            elif __ccall__(<PyObject*>value(), <PyObject*>([self]+args)):
                 return True
 
-        cdef object handler = getattr(self, event_type)
-        return __ccall__(<PyObject*>handler, <PyObject*>args)
+        return <object>PyObject_CallMethodObjArgs(<PyObject*>self, <PyObject*>event_type, <PyObject*>args)
 
     #
     # Properties
