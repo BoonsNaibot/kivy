@@ -1,17 +1,15 @@
+from cpython.ref cimport PyObject
 from kivy._event cimport EventDispatcher
 from kivy.properties cimport AliasProperty, BooleanProperty, DictProperty, ListProperty, NumericProperty, ObjectProperty, ReferenceListProperty, StringProperty
 
+cdef inline PY_INIT(T)
+
 cdef extern from "Python.h":
     object PyWeakref_NewProxy(object ob, object callback)
+    ctypedef struct WidgetMetaclass "PyTypeObject":
+        object tp_init(WidgetMetaclass* this, object that, PyObject* theother)   
+    ctypedef EventDispatcher WidgetBase "<EventDispatcher>PY_INIT(EventDispatcher)"
 
-cdef extern from "object.h": 
-    ctypedef class __builtin__.type [object PyHeapTypeObject]:
-        pass
-        
-cdef class WidgetMetaclass(type):
-    pass
-
-cdef class WidgetBase
 
 cdef class Widget(WidgetBase):
     cdef object _canvas
