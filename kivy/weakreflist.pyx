@@ -42,6 +42,7 @@ cdef class WeakList(list):
         super(WeakList, self).__setitem__(i, _get_ref(item, self))
 
     def __setslice__(self, int i, int j, object items):
+        cdef object x
         super(WeakList, self).__setslice__(i, j, (_get_ref(x, self) for x in items))
 
     cpdef _remove(self, object item):
