@@ -303,7 +303,7 @@ cdef class EventDispatcher(ObjectWithUid):
             '''
             return self.__event_stack.keys()
 
-    def dispatch(self, str event_type, *args):
+    cpdef object dispatch(self, str event_type, *args):
         '''Dispatch an event across all the handlers added in bind().
         As soon as a handler returns True, the dispatching stops.
         '''
