@@ -1,4 +1,3 @@
-
 __all__ = ('Widget', 'WidgetException')
 
 from kivy.factory import Factory
@@ -7,6 +6,11 @@ from kivy.base import EventLoop
 from kivy.lang import Builder
 from kivy.context import get_current_context
 from functools import partial
+
+cdef inline PY_INIT(T):
+    cdef char *name = T.__name__
+    Factory.register(name, cls=T)
+    return (<WidgetMetaclass*>T).tp_init((<WidgetMetaclass*>T), (), NULL)
 
 # references to all the destructors widgets (partial method with widget uid as key.)
 cdef dict _widget_destructors = {}
@@ -47,19 +51,6 @@ class WidgetException(Exception):
     '''Fired when the widget gets an exception.
     '''
     pass
-
-cdef class WidgetMetaclass(type):
-    '''Metaclass to automatically register new widgets for the
-    :class:`~kivy.factory.Factory`
-
-    .. warning::
-        This metaclass is used by the Widget. Do not use it directly !
-    '''
-    def __init__(mcs, name, bases, attrs): # `__cinit__`?
-        super(WidgetMetaclass, mcs).__init__(name, bases, attrs)
-        Factory.register(name, cls=mcs)
-
-WidgetBase = WidgetMetaclass('WidgetBase', (EventDispatcher, ), {})
 
 cdef class Widget(WidgetBase):
     __events__ = ('on_touch_down', 'on_touch_move', 'on_touch_up')
@@ -173,7 +164,7 @@ cdef class Widget(WidgetBase):
 
     cpdef bint on_touch_move(self, object touch):
         if self.disabled:
-            return 
+            return False
         cdef WidgetBase child
         for child in self.children[:]:
             if child.dispatch('on_touch_move', touch):
