@@ -22,7 +22,7 @@ cdef class WeakMethod(object):
 
     def __call__(self):
         if self._func is not None:
-            return getattr(self._get_object(self._obj), self._func)
+            return PyObject_GetAttr(self._get_object(self._obj), self._func)
         else:
             # we don't have an instance: return just the function
             return self._obj
