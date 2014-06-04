@@ -30,7 +30,8 @@ cdef inline object __ccall__(void *py_function, void *args):
     py_args = <tuple>args if args is not NULL else ()
     return (<object>py_function)(*py_args)
 
-def _get_bases(cls):
+cdef object _get_bases(object cls):
+    cdef object base, cbase
     for base in cls.__bases__:
         if base.__name__ == 'object':
             break
