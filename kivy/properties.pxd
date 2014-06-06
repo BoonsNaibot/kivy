@@ -1,3 +1,4 @@
+from kivy.weakmethod cimport WeakMethod
 from kivy._event cimport EventDispatcher
 from kivy.weakreflist cimport WeakList
 
