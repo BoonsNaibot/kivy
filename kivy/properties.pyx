@@ -612,18 +612,18 @@ cdef class ListProperty(Property):
     cpdef link(self, EventDispatcher obj, str name):
         Property.link(self, obj, name)
         cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.value = ObservableList(self, obj, ps.value)
+        ps.value = ObservableList(PyWeakref_NewProxy(self, None), obj, ps.value)
 
     cdef check(self, EventDispatcher obj, value):
         if Property.check(self, obj, value):
             return True
         if type(value) is not ObservableList:
-            raise ValueError('%s.%s accept only ObservableList' % (
+            raise ValueError('{!s}.{!s} accept only ObservableList'.format(
                 obj.__class__.__name__,
                 self.name))
 
     cpdef set(self, EventDispatcher obj, value):
-        value = ObservableList(self, obj, value)
+        value = ObservableList(PyWeakref_NewProxy(self, None), obj, value)
         Property.set(self, obj, value)
 
 
@@ -707,18 +707,18 @@ cdef class WeakListProperty(Property):
     cpdef link(self, EventDispatcher obj, str name):
         Property.link(self, obj, name)
         cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.value = ObservableWeakList(self, obj, ps.value)
+        ps.value = ObservableWeakList(PyWeakref_NewProxy(self, None), obj, ps.value)
 
     cdef check(self, EventDispatcher obj, value):
         if Property.check(self, obj, value):
             return True
         if type(value) is not ObservableWeakList:
-            raise ValueError('%s.%s accept only ObservableWeakList' % (
+            raise ValueError('{!s}.{!s} accept only ObservableWeakList'.format(
                 obj.__class__.__name__,
                 self.name))
 
     cpdef set(self, EventDispatcher obj, value):
-        value = ObservableWeakList(self, obj, value)
+        value = ObservableWeakList(PyWeakref_NewProxy(self, None), obj, value)
         Property.set(self, obj, value)
 
 cdef inline void observable_dict_dispatch(object self):
@@ -806,18 +806,18 @@ cdef class DictProperty(Property):
     cpdef link(self, EventDispatcher obj, str name):
         Property.link(self, obj, name)
         cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.value = ObservableDict(self, obj, ps.value)
+        ps.value = ObservableDict(PyWeakref_NewProxy(self, None), obj, ps.value)
 
     cdef check(self, EventDispatcher obj, value):
         if Property.check(self, obj, value):
             return True
         if type(value) is not ObservableDict:
-            raise ValueError('%s.%s accept only ObservableDict' % (
+            raise ValueError('{!s}.{!s} accept only ObservableDict'.format(
                 obj.__class__.__name__,
                 self.name))
 
     cpdef set(self, EventDispatcher obj, value):
-        value = ObservableDict(self, obj, value)
+        value = ObservableDict(PyWeakref_NewProxy(self, None), obj, value)
         Property.set(self, obj, value)
 
 
@@ -1105,14 +1105,14 @@ cdef class OptionProperty(Property):
         def __get__(self):
             return self.options
 
-class ObservableReferenceList(ObservableList):
+class ObservableReferenceList(ObservableWeakList):
     def __setitem__(self, key, value, update_properties=True):
-        list.__setitem__(self, key, value)
+        super(ObservableWeakList, self).__setitem__(key, value)
         if update_properties:
             self.prop.setitem(self.obj(), key, value)
 
     def __setslice__(self, start, stop, value, update_properties=True):  # Python 2 only method
-        list.__setslice__(self, start, stop, value)
+        super(ObservableWeakList, self).__setslice__(start, stop, value)
         if update_properties:
             self.prop.setitem(self.obj(), slice(start, stop), value)
 
@@ -1126,7 +1126,7 @@ cdef class ReferenceListProperty(Property):
     `x` and `y`.
     '''
     def __cinit__(self):
-        self.properties = list()
+        self.properties = WeakList()
 
     def __init__(self, *largs, **kw):
         for prop in largs:
@@ -1141,7 +1141,7 @@ cdef class ReferenceListProperty(Property):
     cpdef link(self, EventDispatcher obj, str name):
         Property.link(self, obj, name)
         cdef PropertyStorage ps = obj.__storage[self._name]
-        ps.value = ObservableReferenceList(self, obj, ps.value)
+        ps.value = ObservableReferenceList(PyWeakref_NewProxy(self, None), obj, ps.value)
 
     cpdef link_deps(self, EventDispatcher obj, str name):
         cdef Property prop
@@ -1168,15 +1168,15 @@ cdef class ReferenceListProperty(Property):
 
     cdef convert(self, EventDispatcher obj, value):
         if not isinstance(value, (list, tuple)):
-            raise ValueError('%s.%s must be a list or a tuple' % (
+            raise ValueError('{!s}.{!s} must be a list or a tuple'.format(
                 obj.__class__.__name__,
                 self.name))
-        return list(value)
+        return WeakList(value)
 
     cdef check(self, EventDispatcher obj, value):
         cdef PropertyStorage ps = obj.__storage[self._name]
         if len(value) != len(ps.properties):
-            raise ValueError('%s.%s value length is immutable' % (
+            raise ValueError('{!s}.{!s} value length is immutable'.format(
                 obj.__class__.__name__,
                 self.name))
 
@@ -1270,10 +1270,10 @@ cdef class AliasProperty(Property):
 
     def __init__(self, getter, setter, **kwargs):
         Property.__init__(self, None, **kwargs)
-        self.getter = getter
-        self.setter = setter
+        self.getter = WeakMethod(getter)
+        self.setter = WeakMethod(setter) if setter is not None else setter
         v = kwargs.get('bind')
-        self.bind_objects = list(v) if v is not None else []
+        self.bind_objects = list(v) if v is not None else list()
         if kwargs.get('cache'):
             self.use_cache = 1
 
@@ -1304,14 +1304,14 @@ cdef class AliasProperty(Property):
         cdef PropertyStorage ps = obj.__storage[self._name]
         if self.use_cache:
             if ps.alias_initial:
-                ps.value = ps.getter(obj)
+                ps.value = ps.getter()(obj)
                 ps.alias_initial = 0
             return ps.value
-        return ps.getter(obj)
+        return ps.getter()(obj)
 
     cpdef set(self, EventDispatcher obj, value):
         cdef PropertyStorage ps = obj.__storage[self._name]
-        if ps.setter(obj, value):
+        if ps.setter()(obj, value):
             ps.value = self.get(obj)
             self.dispatch(obj)
 
