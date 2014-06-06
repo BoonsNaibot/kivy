@@ -1,6 +1,9 @@
 from kivy._event cimport EventDispatcher
 from kivy.weakreflist cimport WeakList
 
+cdef extern from "Python.h":
+    object PyWeakref_NewProxy(object ob, object callback)
+
 cdef class PropertyStorage:
     cdef object value
     cdef list observers
