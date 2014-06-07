@@ -9,7 +9,7 @@ cdef inline object _get_ref(object x, object self):
 
 cdef class WeakList(list):
 
-    def __init__(self, list items=None):
+    def __init__(self, object items=None):
         cdef object x
         items = items or []
         super(WeakList, self).__init__((_get_ref(x, self) for x in items))
@@ -17,13 +17,14 @@ cdef class WeakList(list):
     def __contains__(self, object item):
         return super(WeakList, self).__contains__(_get_ref(item, self))
 
-    def __getitem__(self, object item):
-        return _get_object(super(WeakList, self).__getitem__(item))
-
-    def __getslice__(self, int i, int j):
+    def __getitem__(self, object i):
         cdef object x
-        cdef list slice = super(WeakList, self).__getslice__(i, j)
-        return [_get_object(x) for x in slice] #slow?
+        gen = (_get_object(x) for x in super(WeakList, self).__getitem__(i))
+        return list(gen)
+
+    def __getslice__(self, Py_ssize_t i, Py_ssize_t j):
+        cdef slice s = PySlice_New(i, j, None)
+        return self.__getitem__(s)
 
     def __iter__(self):
         cdef object x
@@ -38,12 +39,13 @@ cdef class WeakList(list):
         for x in super(WeakList, self).__reversed__(*args, **kwargs):
             yield _get_object(x)
 
-    def __setitem__(self, int i, object item):
-        super(WeakList, self).__setitem__(i, _get_ref(item, self))
-
-    def __setslice__(self, int i, int j, object items):
+    def __setitem__(self, object i, object items):
         cdef object x
-        super(WeakList, self).__setslice__(i, j, (_get_ref(x, self) for x in items))
+        super(WeakList, self).__setitem__(i, (_get_ref(x, self) for x in items))
+
+    def __setslice__(self, Py_ssize_t i, Py_ssize_t j, object items):
+        cdef slice s = PySlice_New(i, j, None)
+        self.__setitem__(s, items)
 
     cpdef _remove(self, object item):
         while super(WeakList, self).__contains__(item):
@@ -62,10 +64,10 @@ cdef class WeakList(list):
     def index(self, object item):
         return super(WeakList, self).index(_get_ref(item, self))
 
-    def insert(self, int i, object item):
+    def insert(self, Py_ssize_t i, object item):
         super(WeakList, self).insert(i, _get_ref(item, self))
         
-    def pop(self, int i=-1):
+    def pop(self, Py_ssize_t i=-1):
         return _get_object(super(WeakList, self).pop(i))
 
     def remove(self, object item):
