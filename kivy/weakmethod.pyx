@@ -1,7 +1,8 @@
 cdef class WeakMethod(object):
-    __slots__ = ('_obj', '_func')
+    __slots__ = ('_obj', '_func', 'id')
 
     def __cinit__(self, object method):
+        self.id = id(method)
         try:
             if method.__self__ is not None:
                 # bound method
@@ -30,11 +31,11 @@ cdef class WeakMethod(object):
     def __richcmp__(self, object other, int op):
         if op == 2:
             try:
-                return type(self) is type(other) and self() == other()
+                return self.id == id(other)
             except:
                 return False
         elif op == 3:
-            return not self == other
+            return self.id <> id(other)
 
     def is_dead(self):
         '''Returns True if the referenced callable was a bound method and
