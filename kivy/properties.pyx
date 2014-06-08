@@ -188,7 +188,7 @@ __all__ = ('Property',
            'OptionProperty', 'ReferenceListProperty', 'AliasProperty',
            'DictProperty', 'VariableListProperty')
 
-include "graphics/config.pxi"
+#include "graphics/config.pxi"
 
 from weakref import ref
 from kivy.compat import string_types
@@ -297,7 +297,7 @@ cdef class Property:
 
     cdef init_storage(self, EventDispatcher obj, PropertyStorage storage):
         storage.value = self.convert(obj, self.defaultvalue)
-        storage.observers = []
+        storage.observers = []#WeakList()
 
     cpdef link(self, EventDispatcher obj, str name):
         '''Link the instance with its real name.
@@ -529,7 +529,7 @@ cdef class StringProperty(Property):
                 self.name))
 
 cdef inline void observable_list_dispatch(object self):
-    cdef Property prop = self.prop
+    cdef Property prop = self.prop()
     obj = self.obj()
     if obj is not None:
         prop.dispatch(obj)
@@ -538,7 +538,7 @@ cdef inline void observable_list_dispatch(object self):
 class ObservableList(list):
     # Internal class to observe changes inside a native python list.
     def __init__(self, *largs):
-        self.prop = largs[0]
+        self.prop = ref(largs[0])
         self.obj = ref(largs[1])
         super(ObservableList, self).__init__(*largs[2:])
 
@@ -618,7 +618,7 @@ cdef class ListProperty(Property):
         if Property.check(self, obj, value):
             return True
         if type(value) is not ObservableList:
-            raise ValueError('%s.%s accept only ObservableList' % (
+            raise ValueError('{!s}.{!s} accept only ObservableList'.format(
                 obj.__class__.__name__,
                 self.name))
 
@@ -626,16 +626,111 @@ cdef class ListProperty(Property):
         value = ObservableList(self, obj, value)
         Property.set(self, obj, value)
 
+
+class ObservableWeakList(WeakList):
+    # Internal class to observe changes inside a WeakList.
+    def __init__(self, *largs):
+        self.prop = ref(largs[0])
+        self.obj = ref(largs[1])
+        super(ObservableWeakList, self).__init__(*largs[2:])
+
+    def __delitem__(self, key):
+        super(ObservableWeakList, self).__delitem__(key)
+        observable_list_dispatch(self)
+
+    def __delslice__(self, *largs):
+        super(ObservableWeakList, self).__delslice__(*largs)
+        observable_list_dispatch(self)
+
+    def __iadd__(self, *largs):
+        super(ObservableWeakList, self).__iadd__(*largs)
+        observable_list_dispatch(self)
+
+    def __imul__(self, *largs):
+        super(ObservableWeakList, self).__imul__(*largs)
+        observable_list_dispatch(self)
+
+    def __setitem__(self, key, value):
+        super(ObservableWeakList, self).__setitem__(key, value)
+        observable_list_dispatch(self)
+
+    def __setslice__(self, *largs):
+        super(ObservableWeakList, self).__setslice__(*largs)
+        observable_list_dispatch(self)
+        
+    def _remove(self, *largs):
+        super(ObservableWeakList, self)._remove(*largs)
+        observable_list_dispatch(self)
+
+    def append(self, *largs):
+        super(ObservableWeakList, self).append(*largs)
+        observable_list_dispatch(self)
+
+    def extend(self, *largs):
+        super(ObservableWeakList, self).extend(*largs)
+        observable_list_dispatch(self)
+
+    def insert(self, *largs):
+        super(ObservableWeakList, self).insert(*largs)
+        observable_list_dispatch(self)
+
+    def pop(self, *largs):
+        cdef object result = super(ObservableWeakList, self).pop(*largs)
+        observable_list_dispatch(self)
+        return result
+
+    def remove(self, *largs):
+        super(ObservableWeakList, self).remove(*largs)
+        observable_list_dispatch(self)
+
+    def reverse(self, *largs):
+        super(ObservableWeakList, self).reverse(*largs)
+        observable_list_dispatch(self)
+
+    def sort(self, *largs):
+        super(ObservableWeakList, self).sort(*largs)
+        observable_list_dispatch(self)
+
+
+cdef class WeakListProperty(Property):
+    '''Property that represents a list.
+
+    :Parameters:
+        `default`: list, defaults to WeakList([])?
+            Specifies the default value of the property.
+    '''
+
+    def __init__(self, defaultvalue=None, **kw):
+        defaultvalue = defaultvalue or WeakList([])
+        super(WeakListProperty, self).__init__(defaultvalue, **kw)
+
+    cpdef link(self, EventDispatcher obj, str name):
+        Property.link(self, obj, name)
+        cdef PropertyStorage ps = obj.__storage[self._name]
+        ps.value = ObservableWeakList(self, obj, ps.value)
+
+    cdef check(self, EventDispatcher obj, value):
+        if Property.check(self, obj, value):
+            return True
+        if type(value) is not ObservableWeakList:
+            raise ValueError('{!s}.{!s} accept only ObservableWeakList'.format(
+                obj.__class__.__name__,
+                self.name))
+
+    cpdef set(self, EventDispatcher obj, value):
+        value = ObservableWeakList(self, obj, value)
+        Property.set(self, obj, value)
+
 cdef inline void observable_dict_dispatch(object self):
-    cdef Property prop = self.prop
-    prop.dispatch(self.obj)
+    cdef Property prop = self.prop()
+    prop.dispatch(self.obj())
 
 
 class ObservableDict(dict):
     # Internal class to observe changes inside a native python dict.
     def __init__(self, *largs):
-        self.prop = largs[0]
-        self.obj = largs[1]
+        self.prop = ref(largs[0])
+        self.obj = ref(largs[1])
         super(ObservableDict, self).__init__(*largs[2:])
 
     def _weak_return(self, item):
@@ -717,7 +812,7 @@ cdef class DictProperty(Property):
         if Property.check(self, obj, value):
             return True
         if type(value) is not ObservableDict:
-            raise ValueError('%s.%s accept only ObservableDict' % (
+            raise ValueError('{!s}.{!s} accept only ObservableDict'.format(
                 obj.__class__.__name__,
                 self.name))
 
@@ -1014,12 +1109,12 @@ class ObservableReferenceList(ObservableList):
     def __setitem__(self, key, value, update_properties=True):
         list.__setitem__(self, key, value)
         if update_properties:
-            self.prop.setitem(self.obj(), key, value)
+            self.prop().setitem(self.obj(), key, value)
 
     def __setslice__(self, start, stop, value, update_properties=True):  # Python 2 only method
         list.__setslice__(self, start, stop, value)
         if update_properties:
-            self.prop.setitem(self.obj(), slice(start, stop), value)
+            self.prop().setitem(self.obj(), slice(start, stop), value)
 
 cdef class ReferenceListProperty(Property):
     '''Property that allows the creation of a tuple of other properties.
@@ -1073,7 +1168,7 @@ cdef class ReferenceListProperty(Property):
 
     cdef convert(self, EventDispatcher obj, value):
         if not isinstance(value, (list, tuple)):
-            raise ValueError('%s.%s must be a list or a tuple' % (
+            raise ValueError('{!s}.{!s} must be a list or a tuple'.format(
                 obj.__class__.__name__,
                 self.name))
         return list(value)
@@ -1081,7 +1176,7 @@ cdef class ReferenceListProperty(Property):
     cdef check(self, EventDispatcher obj, value):
         cdef PropertyStorage ps = obj.__storage[self._name]
         if len(value) != len(ps.properties):
-            raise ValueError('%s.%s value length is immutable' % (
+            raise ValueError('{!s}.{!s} value length is immutable'.format(
                 obj.__class__.__name__,
                 self.name))
 
@@ -1175,10 +1270,10 @@ cdef class AliasProperty(Property):
 
     def __init__(self, getter, setter, **kwargs):
         Property.__init__(self, None, **kwargs)
-        self.getter = getter
-        self.setter = setter
+        self.getter = WeakMethod(getter)
+        self.setter = WeakMethod(setter) if setter is not None else setter
         v = kwargs.get('bind')
-        self.bind_objects = list(v) if v is not None else []
+        self.bind_objects = list(v) if v is not None else list()
         if kwargs.get('cache'):
             self.use_cache = 1
 
@@ -1209,14 +1304,14 @@ cdef class AliasProperty(Property):
         cdef PropertyStorage ps = obj.__storage[self._name]
         if self.use_cache:
             if ps.alias_initial:
-                ps.value = ps.getter(obj)
+                ps.value = ps.getter()(obj)
                 ps.alias_initial = 0
             return ps.value
-        return ps.getter(obj)
+        return ps.getter()(obj)
 
     cpdef set(self, EventDispatcher obj, value):
         cdef PropertyStorage ps = obj.__storage[self._name]
-        if ps.setter(obj, value):
+        if ps.setter()(obj, value):
             ps.value = self.get(obj)
             self.dispatch(obj)
 
@@ -1349,4 +1444,3 @@ cdef class VariableListProperty(Property):
 
     cdef float parse_list(self, EventDispatcher obj, value, str ext):
         return dpi2px(value, ext)
-
