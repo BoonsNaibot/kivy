@@ -5,7 +5,7 @@ cdef extern from "Python.h":
     void Py_XINCREF(object o)
     
 cdef class WeakMethod(object):
-    cdef int id
+    cdef Py_ssize_t id
     cdef object _obj
     cdef str _func
     cdef object _get_object(self, object x)
