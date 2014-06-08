@@ -19,7 +19,7 @@ cdef class WeakList(list):
 
     def __getitem__(self, object i):
         cdef object x
-        gen = (_get_object(x) for x in super(WeakList, self).__getitem__(i))
+        cdef object gen = (_get_object(x) for x in super(WeakList, self).__getitem__(i))
         return list(gen)
 
     def __getslice__(self, Py_ssize_t i, Py_ssize_t j):
@@ -41,7 +41,8 @@ cdef class WeakList(list):
 
     def __setitem__(self, object i, object items):
         cdef object x
-        super(WeakList, self).__setitem__(i, (_get_ref(x, self) for x in items))
+        cdef object gen = (_get_ref(x, self) for x in items)
+        super(WeakList, self).__setitem__(i, gen)
 
     def __setslice__(self, Py_ssize_t i, Py_ssize_t j, object items):
         cdef slice s = PySlice_New(i, j, None)
