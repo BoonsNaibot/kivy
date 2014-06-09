@@ -1154,15 +1154,9 @@ cdef class ReferenceListProperty(Property):
         if ps.stop_event:
             return
         p = ps.properties
-
-        try:
-            ps.value.__setslice__(0, len(p),
-                    [prop.get(obj) for prop in p],
-                    update_properties=False)
-        except AttributeError:
-            ps.value.__setitem__(slice(len(p)),
-                    [prop.get(obj) for prop in p],
-                    update_properties=False)
+        ps.value.__setitem__(slice(len(p)),
+                             (prop.get(obj) for prop in p),
+                             update_properties=False)
 
         self.dispatch(obj)
 
