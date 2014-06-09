@@ -30,10 +30,7 @@ cdef class WeakMethod(object):
 
     def __richcmp__(self, object other, int op):
         if op == 2:
-            try:
-                return self.id == other.__hash__()
-            except:
-                return False
+            return self.id == other.__hash__()
         elif op == 3:
             return self.id <> other.__hash__()
 
