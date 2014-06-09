@@ -1114,9 +1114,10 @@ class ObservableReferenceList(ObservableList):
             self.prop().setitem(self.obj(), key, value)
 
     def __setslice__(self, start, stop, value, update_properties=True):  # Python 2 only method
-        list.__setslice__(self, start, stop, value)
+        key = slice(start, stop)
+        list.__setitem__(self, key, value)
         if update_properties:
-            self.prop().setitem(self.obj(), slice(start, stop), value)
+            self.prop().setitem(self.obj(), key, value)
 
 cdef class ReferenceListProperty(Property):
     '''Property that allows the creation of a tuple of other properties.
@@ -1192,12 +1193,8 @@ cdef class ReferenceListProperty(Property):
             x = value[idx]
             prop.set(obj, x)
         ps.stop_event = 0
-        try:
-            ps.value.__setslice__(0, len(value), value,
-                    update_properties=False)
-        except AttributeError:
-            ps.value.__setitem__(slice(len(value)), value,
-                    update_properties=False)
+        ps.value.__setitem__(slice(len(value)), value,
+                update_properties=False)
         self.dispatch(obj)
         return True
 
@@ -1220,14 +1217,9 @@ cdef class ReferenceListProperty(Property):
     cpdef get(self, EventDispatcher obj):
         cdef PropertyStorage ps = obj.__storage[self._name]
         cdef tuple p = ps.properties
-        try:
-            ps.value.__setslice__(0, len(p),
-                    [prop.get(obj) for prop in p],
-                    update_properties=False)
-        except AttributeError:
-            ps.value.__setitem__(slice(len(p)),
-                    [prop.get(obj) for prop in p],
-                    update_properties=False)
+        ps.value.__setitem__(slice(len(p)),
+                (prop.get(obj) for prop in p),
+                update_properties=False)
         return ps.value
 
 cdef class AliasProperty(Property):
