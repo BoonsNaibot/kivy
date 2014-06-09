@@ -78,7 +78,7 @@ cdef class AliasProperty(Property):
     cdef object getter
     cdef object setter
     cdef tuple bind_objects
-    cdef int use_cache
+    cdef bint use_cache
     cpdef trigger_change(self, EventDispatcher obj, value)
 
 cdef class VariableListProperty(Property):
