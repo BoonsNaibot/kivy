@@ -1266,14 +1266,14 @@ cdef class AliasProperty(Property):
         self.getter = None
         self.setter = None
         self.use_cache = 0
-        self.bind_objects = list()
+        self.bind_objects = tuple()
 
     def __init__(self, getter, setter, **kwargs):
         Property.__init__(self, None, **kwargs)
         self.getter = WeakMethod(getter)
         self.setter = WeakMethod(setter) if setter is not None else setter
         v = kwargs.get('bind')
-        self.bind_objects = list(v) if v is not None else list()
+        self.bind_objects = tuple(v) if v is not None else tuple()
         if kwargs.get('cache'):
             self.use_cache = 1
 
