@@ -550,8 +550,10 @@ class ObservableList(list):
         list.__delitem__(self, key)
         observable_list_dispatch(self)
 
-    def __setslice__(self, *largs):
-        list.__setslice__(self, *largs)
+    def __setslice__(self, i, j, *largs):
+        #list.__setslice__(self, *largs)
+        key = slice(i, j)
+        list.__setitem__(self, key *largs)
         observable_list_dispatch(self)
 
     def __delslice__(self, *largs):
