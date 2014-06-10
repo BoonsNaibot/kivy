@@ -14,7 +14,7 @@ cdef class MotionEvent(object):
     cdef readonly float double_tap_time
     cdef public bint is_triple_tap
     cdef readonly triple_tap_time
-    cdef dict ud
+    cdef public dict ud
     cdef public list grab_list
     cdef public object grab_exclusive_class
     cdef bint grab_state
