@@ -46,11 +46,11 @@ class InputPostprocRetainTouch(object):
                 events.remove((etype, touch))
                 if touch.uid in self._links:
                     selection = self._links[touch.uid]
-                    selection.ud.__pp_retain_time__ = d
+                    selection.ud['__pp_retain_time__'] = d
                     self._available.append(selection)
                     del self._links[touch.uid]
                 else:
-                    touch.ud.__pp_retain_time__ = d
+                    touch.ud['__pp_retain_time__'] = d
                     self._available.append(touch)
             elif etype == 'update':
                 if touch.uid in self._links:
@@ -85,7 +85,7 @@ class InputPostprocRetainTouch(object):
                 events.remove((etype, touch))
 
         for touch in self._available[:]:
-            t = touch.ud.__pp_retain_time__
+            t = touch.ud['__pp_retain_time__']
             if d - t > self.timeout:
                 self._available.remove(touch)
                 events.append(('end', touch))
