@@ -6,7 +6,7 @@ cdef class MotionEvent(object):
     cdef int id
     cdef object shape
     cdef list profile
-    cdef readonly float dsx, dsy, dsz, dx, dy, dz, osx, osy, osz, ox, oy, oz, psx, psy, psz, px, py, pz, sx, sy sz, x, y, z
+    cdef readonly float dsx, dsy, dsz, dx, dy, dz, osx, osy, osz, ox, oy, oz, psx, psy, psz, px, py, pz, sx, sy, sz, x, y, z
     cdef readonly tuple pos
     cdef readonly float time_start
     cdef readonly float time_update, time_end
