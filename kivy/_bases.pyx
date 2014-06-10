@@ -45,7 +45,7 @@ cdef class EventLoopBase(EventDispatcher):
     def __cinit__(self):
         self.quit = False
         self.input_events = []
-        self.postproc_modules = []
+        self.postproc_modules = WeakList()
         self.status = 'idle'
         self.input_providers = []
         self.input_providers_autoremove = []
