@@ -12,14 +12,15 @@ provider. The implementation must support the
 __all__ = ('MotionEventProvider', )
 
 
-class MotionEventProvider(object):
+cdef class MotionEventProvider(object):
     '''Base class for a provider.
     '''
 
-    def __init__(self, device, args):
+    def __cinit__(self, device, *args):
         self.device = device
-        if self.__class__ == MotionEventProvider:
-            raise NotImplementedError('class MotionEventProvider is abstract')
+        
+    def __init__(self, *args):
+        raise NotImplementedError('class MotionEventProvider is abstract')
 
     def start(self):
         '''Start the provider. This method is automatically called when the
