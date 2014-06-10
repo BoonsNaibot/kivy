@@ -90,7 +90,7 @@ from time import time
 from kivy.vector import Vector
 
 
-class EnhancedDictionary(dict):
+"""class EnhancedDictionary(dict):
 
     def __getattr__(self, attr):
         try:
@@ -116,10 +116,10 @@ class MotionEventMetaclass(type):
                                                         bases, attrs)
 
 
-MotionEventBase = MotionEventMetaclass('MotionEvent', (object, ), {})
+MotionEventBase = MotionEventMetaclass('MotionEvent', (object, ), {})"""
 
 
-class MotionEvent(MotionEventBase):
+class MotionEvent(object):
     '''Abstract class to represent a touch and non-touch object.
 
     :Parameters:
@@ -128,46 +128,20 @@ class MotionEvent(MotionEventBase):
         `args` : list
             list of parameters, passed to the depack() function
     '''
+    
+    cdef int __uniq_id = 0
 
-    __uniq_id = 0
-    __attrs__ = \
-        ('device', 'push_attrs', 'push_attrs_stack',
-         'is_touch', 'id', 'shape', 'profile',
-         # current position, in 0-1 range
-         'sx', 'sy', 'sz',
-         # first position set, in 0-1 range
-         'osx', 'osy', 'osz',
-         # last position set, in 0-1 range
-         'psx', 'psy', 'psz',
-         # delta from the last position and current one, in 0-1 range
-         'dsx', 'dsy', 'dsz',
-         # current position, in screen range
-         'x', 'y', 'z',
-         # first position set, in screen range
-         'ox', 'oy', 'oz',
-         # last position set, in 0-1 range
-         'px', 'py', 'pz',
-         # delta from the last position and current one, in screen range
-         'dx', 'dy', 'dz',
-         'time_start',
-         'is_double_tap', 'double_tap_time',
-         'is_triple_tap', 'triple_tap_time',
-         'ud')
-
-    def __init__(self, device, id, args):
-        if self.__class__ == MotionEvent:
-            raise NotImplementedError('class MotionEvent is abstract')
-        MotionEvent.__uniq_id += 1
+    def __cinit__(self, device, id, *args):
+        MotionEvent.__uniq_id = += 1
 
         #: True if the Motion Event is a Touch. Can be also verified is
         #: `pos` is :attr:`profile`.
-        self.is_touch = False
+        self.is_touch = 0
 
         #: Attributes to push by default, when we use :meth:`push` : x, y, z,
         #: dx, dy, dz, ox, oy, oz, px, py, pz.
         self.push_attrs_stack = []
-        self.push_attrs = ('x', 'y', 'z', 'dx', 'dy', 'dz', 'ox', 'oy', 'oz',
-                           'px', 'py', 'pz', 'pos')
+        self.push_attrs = ('x', 'y', 'z', 'dx', 'dy', 'dz', 'ox', 'oy', 'oz', 'px', 'py', 'pz', 'pos')
 
         #: Uniq ID of the touch. You can safely use this property, it will be
         #: never the same accross all existing touches.
@@ -278,11 +252,16 @@ class MotionEvent(MotionEventBase):
 
         #: User data dictionary. Use this dictionary to save your own data on
         #: the touch.
-        self.ud = EnhancedDictionary()
+        self.ud = {}
 
         self.depack(args)
 
-    def depack(self, args):
+    def __init__(self, device, id, args):
+        if self.__class__ == MotionEvent:
+            raise NotImplementedError('class MotionEvent is abstract')
+        MotionEvent.__uniq_id += 1
+
+    cdef depack(MotionEvent self, ...):
         '''Depack `args` into attributes of the class'''
         # set initial position and last position
         if self.osx is None:
@@ -294,7 +273,7 @@ class MotionEvent(MotionEventBase):
         self.dsy = self.sy - self.psy
         self.dsz = self.sz - self.psz
 
-    def grab(self, class_instance, exclusive=False):
+    def grab(self, object class_instance, bint exclusive=False):
         '''Grab this motion event. You can grab a touch if you absolutly
         want to receive on_touch_move() and on_touch_up(), even if the
         touch is not dispatched by your parent::
@@ -385,14 +364,14 @@ class MotionEvent(MotionEventBase):
         '''
         if attrs is None:
             attrs = self.push_attrs
-        values = [getattr(self, x) for x in attrs]
+        values = tuple(getattr(self, x) for x in attrs)
         self.push_attrs_stack.append((attrs, values))
 
     def pop(self):
         '''Pop attributes values from the stack
         '''
         attrs, values = self.push_attrs_stack.pop()
-        for i in range(len(attrs)):
+        for i in xrange(len(attrs)):
             setattr(self, attrs[i], values[i])
 
     def apply_transform_2d(self, transform):
@@ -419,52 +398,52 @@ class MotionEvent(MotionEventBase):
         self.time_end = time()
 
     # facilities
-    @property
-    def dpos(self):
-        '''Return delta between last position and current position, in the
-        screen coordinate system (self.dx, self.dy)'''
-        return self.dx, self.dy
+    cdef property dpos:
+        def __get__(self):
+            '''Return delta between last position and current position, in the
+            screen coordinate system (self.dx, self.dy)'''
+            return self.dx, self.dy
 
-    @property
-    def opos(self):
-        '''Return the initial position of the touch in the screen
-        coordinate system (self.ox, self.oy)'''
-        return self.ox, self.oy
+    cdef property opos:
+        def __get__(self):
+            '''Return the initial position of the touch in the screen
+            coordinate system (self.ox, self.oy)'''
+            return self.ox, self.oy
 
-    @property
-    def ppos(self):
-        '''Return the previous position of the touch in the screen
-        coordinate system (self.px, self.py)'''
-        return self.px, self.py
+    cdef property ppos:
+        def __get__(self):
+            '''Return the previous position of the touch in the screen
+            coordinate system (self.px, self.py)'''
+            return self.px, self.py
 
-    @property
-    def spos(self):
-        '''Return the position in the 0-1 coordinate system
-        (self.sx, self.sy)'''
-        return self.sx, self.sy
+    cdef property spos:
+        def __get__(self):
+            '''Return the position in the 0-1 coordinate system
+            (self.sx, self.sy)'''
+            return self.sx, self.sy
 
     def __str__(self):
-        basename = str(self.__class__)
-        classname = basename.split('.')[-1].replace('>', '').replace('\'', '')
-        return '<%s spos=%s pos=%s>' % (classname, self.spos, self.pos)
+        cdef str basename = str(self.__class__)
+        cdef str classname = basename.split('.')[-1].replace('>', '').replace('\'', '')
+        return '<{!s} spos={!s} pos={!s}>'.format(classname, self.spos, self.pos)
 
     def __repr__(self):
-        out = []
+        cdef list out = []
         for x in dir(self):
             v = getattr(self, x)
             if x[0] == '_':
                 continue
             if isroutine(v):
                 continue
-            out.append('%s="%s"' % (x, v))
-        return '<%s %s>' % (
+            out.append('{!s}="{!s}"'.format(x, v))
+        return '<{!s}{!s}>'.format(
             self.__class__.__name__,
             ' '.join(out))
 
-    @property
-    def is_mouse_scrolling(self, *args):
-        '''Returns True if the touch is a mousewheel scrolling
-
-        .. versionadded:: 1.6.0
-        '''
-        return 'button' in self.profile and 'scroll' in self.button
+    cdef property is_mouse_scrolling:
+        def __get__(self):
+            '''Returns True if the touch is a mousewheel scrolling
+    
+            .. versionadded:: 1.6.0
+            '''
+            return 'button' in self.profile and 'scroll' in self.button
