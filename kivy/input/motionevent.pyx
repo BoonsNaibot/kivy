@@ -257,9 +257,7 @@ class MotionEvent(object):
         self.depack(args)
 
     def __init__(self, device, id, args):
-        if self.__class__ == MotionEvent:
-            raise NotImplementedError('class MotionEvent is abstract')
-        MotionEvent.__uniq_id += 1
+        raise NotImplementedError('class MotionEvent is abstract')
 
     cdef depack(MotionEvent self, ...):
         '''Depack `args` into attributes of the class'''
