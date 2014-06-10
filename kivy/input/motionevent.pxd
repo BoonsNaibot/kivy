@@ -16,7 +16,7 @@ cdef class MotionEvent(object):
     cdef readonly triple_tap_time
     cdef public dict ud
     cdef public list grab_list
-    cdef public object grab_exclusive_class
+    cdef readonly object grab_exclusive_class
     cdef bint grab_state
     
     cdef depack(MotionEvent self, ...)
