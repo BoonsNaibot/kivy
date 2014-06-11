@@ -7,6 +7,7 @@ Factory of :class:`~kivy.input.motionevent.MotionEvent` providers.
 
 __all__ = ('MotionEventFactory', )
 
+from weakref import WeakValueDictionary
 
 class MotionEventFactory:
     '''MotionEvent factory is a class that registers all availables input
@@ -16,7 +17,7 @@ class MotionEventFactory:
         MotionEventFactory.register('myproviderid', MyInputProvider)
 
     '''
-    __providers__ = {}
+    __providers__ = WeakValueDictionary()
 
     @staticmethod
     def register(name, classname):
