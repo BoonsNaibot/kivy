@@ -5,19 +5,19 @@ cdef inline PY_INIT(T)
 
 cdef extern from "Python.h":
     object PyWeakref_NewProxy(object ob, object callback)
-
+    
+    cdef struct _object:
+        cdef PyTypeObject *ob_type
+    ctypedef _object PyObject
     ctypedef struct PyTypeObject:
         char *tp_name
-        struct *tp_base
-    ctypedef struct PyObject:
-        cdef PyTypeObject *ob_type
+        _object *tp_base
 
     cdef PyTypeObject PyType_Type:
         int* tp_init(PyObject *self, PyObject *args, PyObject *kwds)
-    cdef PyTypeObject PyBaseTypeObject:
-        pass
 
-    cdef class WidgetMetaclass [object PyTypeObject]:
+cdef public class WidgetMetaclass [object PyTypeObject]:
+    cdef int tp_init(PyObject *self, PyObject *args, PyObject *kwds)
         
 
 
