@@ -18,6 +18,8 @@ cdef class WeakList(list):
         return super(WeakList, self).__contains__(_get_ref(item, self))
 
     def __getitem__(self, object i):
+        if not isinstance(i, slice):
+            return _get_object(super(WeakList, self).__getitem__(i))
         cdef object x
         cdef object gen = (_get_object(x) for x in super(WeakList, self).__getitem__(i))
         return list(gen)
@@ -40,6 +42,9 @@ cdef class WeakList(list):
             yield _get_object(x)
 
     def __setitem__(self, object i, object items):
+        if not isinstance(i, slice):
+            super(WeakList, self).__setitem__(i, _get_ref(items, self))
+            return
         cdef object x
         cdef object gen = (_get_ref(x, self) for x in items)
         super(WeakList, self).__setitem__(i, gen)
