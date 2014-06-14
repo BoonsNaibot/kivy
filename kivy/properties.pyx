@@ -188,7 +188,7 @@ __all__ = ('Property',
            'OptionProperty', 'ReferenceListProperty', 'AliasProperty',
            'DictProperty', 'VariableListProperty')
 
-#include "graphics/config.pxi"
+include "graphics/config.pxi"
 
 from weakref import ref
 from kivy.compat import string_types
@@ -543,58 +543,56 @@ class ObservableList(list):
         super(ObservableList, self).__init__(*largs[2:])
 
     def __setitem__(self, key, value):
-        list.__setitem__(self, key, value)
+        super(ObservableList, self).__setitem__(key, value)
         observable_list_dispatch(self)
 
     def __delitem__(self, key):
-        list.__delitem__(self, key)
+        super(ObservableList, self).__delitem__(key)
         observable_list_dispatch(self)
 
     def __setslice__(self, i, j, *largs):
-        #list.__setslice__(self, *largs)
-        key = slice(i, j)
-        list.__setitem__(self, key *largs)
-        observable_list_dispatch(self)
+        cdef slice s = slice(i, j)
+        self.__setitem__(s, *largs)
 
-    def __delslice__(self, *largs):
-        list.__delslice__(self, *largs)
-        observable_list_dispatch(self)
+    def __delslice__(self, i, j):
+        cdef slice s = slice(i, j)
+        self.__delitem__(s)
 
     def __iadd__(self, *largs):
-        list.__iadd__(self, *largs)
+        super(ObservableList, self).__iadd__(*largs)
         observable_list_dispatch(self)
 
     def __imul__(self, *largs):
-        list.__imul__(self, *largs)
+        super(ObservableList, self).__imul__(*largs)
         observable_list_dispatch(self)
 
     def append(self, *largs):
-        list.append(self, *largs)
+        super(ObservableList, self).append(*largs)
         observable_list_dispatch(self)
 
     def remove(self, *largs):
-        list.remove(self, *largs)
+        super(ObservableList, self).remove(*largs)
         observable_list_dispatch(self)
 
     def insert(self, *largs):
-        list.insert(self, *largs)
+        super(ObservableList, self).insert(*largs)
         observable_list_dispatch(self)
 
     def pop(self, *largs):
-        cdef object result = list.pop(self, *largs)
+        cdef object result = super(ObservableList, self).pop(*largs)
         observable_list_dispatch(self)
         return result
 
     def extend(self, *largs):
-        list.extend(self, *largs)
+        super(ObservableList, self).extend(*largs)
         observable_list_dispatch(self)
 
     def sort(self, *largs):
-        list.sort(self, *largs)
+        super(ObservableList, self).sort(*largs)
         observable_list_dispatch(self)
 
     def reverse(self, *largs):
-        list.reverse(self, *largs)
+        super(ObservableList, self).reverse(*largs)
         observable_list_dispatch(self)
 
 
@@ -640,9 +638,9 @@ class ObservableWeakList(WeakList):
         super(ObservableWeakList, self).__delitem__(key)
         observable_list_dispatch(self)
 
-    def __delslice__(self, *largs):
-        super(ObservableWeakList, self).__delslice__(*largs)
-        observable_list_dispatch(self)
+    def __delslice__(self, i, j):
+        cdef slice s = slice(i, j)
+        self.__delitem__(s)
 
     def __iadd__(self, *largs):
         super(ObservableWeakList, self).__iadd__(*largs)
@@ -654,10 +652,6 @@ class ObservableWeakList(WeakList):
 
     def __setitem__(self, key, value):
         super(ObservableWeakList, self).__setitem__(key, value)
-        observable_list_dispatch(self)
-
-    def __setslice__(self, *largs):
-        super(ObservableWeakList, self).__setslice__(*largs)
         observable_list_dispatch(self)
         
     def _remove(self, *largs):
@@ -703,7 +697,7 @@ cdef class WeakListProperty(Property):
     '''
 
     def __init__(self, defaultvalue=None, **kw):
-        defaultvalue = defaultvalue or WeakList([])
+        defaultvalue = defaultvalue or []
         super(WeakListProperty, self).__init__(defaultvalue, **kw)
 
     cpdef link(self, EventDispatcher obj, str name):
@@ -1109,13 +1103,13 @@ cdef class OptionProperty(Property):
 
 class ObservableReferenceList(ObservableList):
     def __setitem__(self, key, value, update_properties=True):
-        list.__setitem__(self, key, value)
+        super(ObservableList, self).__setitem__(key, value)
         if update_properties:
             self.prop().setitem(self.obj(), key, value)
 
     def __setslice__(self, start, stop, value, update_properties=True):  # Python 2 only method
-        key = slice(start, stop)
-        list.__setitem__(self, key, value)
+        cdef slice key = slice(start, stop)
+        super(ObservableList, self).__setitem__(key, value)
         if update_properties:
             self.prop().setitem(self.obj(), key, value)
 
@@ -1158,8 +1152,8 @@ cdef class ReferenceListProperty(Property):
             return
         p = ps.properties
         ps.value.__setitem__(slice(len(p)),
-                             (prop.get(obj) for prop in p),
-                             update_properties=False)
+                [prop.get(obj) for prop in p],
+                update_properties=False)
 
         self.dispatch(obj)
 
@@ -1218,7 +1212,7 @@ cdef class ReferenceListProperty(Property):
         cdef PropertyStorage ps = obj.__storage[self._name]
         cdef tuple p = ps.properties
         ps.value.__setitem__(slice(len(p)),
-                (prop.get(obj) for prop in p),
+                [prop.get(obj) for prop in p],
                 update_properties=False)
         return ps.value
 
@@ -1254,14 +1248,14 @@ cdef class AliasProperty(Property):
         self.getter = None
         self.setter = None
         self.use_cache = 0
-        self.bind_objects = tuple()
+        self.bind_objects = list()
 
     def __init__(self, getter, setter, **kwargs):
         Property.__init__(self, None, **kwargs)
         self.getter = WeakMethod(getter)
         self.setter = WeakMethod(setter) if setter is not None else setter
         v = kwargs.get('bind')
-        self.bind_objects = tuple(v) if v is not None else tuple()
+        self.bind_objects = list(v) if v is not None else list()
         if kwargs.get('cache'):
             self.use_cache = 1
 
